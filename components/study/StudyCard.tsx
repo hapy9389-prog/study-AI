@@ -9,14 +9,29 @@ interface StudyCardProps {
   studySession?: StudySession;
   onStartStudy: (session: StudySession) => void;
   onCompleteStudy: () => void;
+  // 개발 전용: 경과 시간을 즉시 시뮬레이션(startedAt 조정). production에서는 호출되지 않는다.
+  onDebugSetElapsed: (elapsedSeconds: number) => void;
 }
 
 const QUICK_MINUTES = [30, 45, 60];
 
+// 개발 테스트용 경과 시간 프리셋 — 실제로 기다리지 않고 흐름을 확인하기 위한 값.
+const DEBUG_ELAPSED_PRESETS = [
+  { label: "20초", seconds: 20 },
+  { label: "30분", seconds: 1800 },
+  { label: "60분", seconds: 3600 },
+];
+
 // [공부 시작] is the single most prominent CTA in the whole app — studying
 // itself is the core action, not talking to the character. [공부 완료]
 // transitions straight into the reaction phase, no extra confirmation step.
-export default function StudyCard({ phase, studySession, onStartStudy, onCompleteStudy }: StudyCardProps) {
+export default function StudyCard({
+  phase,
+  studySession,
+  onStartStudy,
+  onCompleteStudy,
+  onDebugSetElapsed,
+}: StudyCardProps) {
   const [subject, setSubject] = useState("");
   const [targetMinutes, setTargetMinutes] = useState<number | null>(null);
   const [customMinutes, setCustomMinutes] = useState("");
@@ -128,6 +143,24 @@ export default function StudyCard({ phase, studySession, onStartStudy, onComplet
           >
             공부 완료
           </button>
+
+          {process.env.NODE_ENV === "development" && (
+            <div className="mt-3 w-full border-t border-warm-gray/15 pt-3">
+              <p className="text-[11px] text-warm-gray">개발 테스트</p>
+              <div className="mt-1.5 flex gap-1.5">
+                {DEBUG_ELAPSED_PRESETS.map(({ label, seconds }) => (
+                  <button
+                    key={seconds}
+                    type="button"
+                    onClick={() => onDebugSetElapsed(seconds)}
+                    className="rounded-md bg-warm-gray/10 px-2 py-1 text-[11px] font-medium text-warm-gray transition-colors hover:bg-warm-gray/20"
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </section>

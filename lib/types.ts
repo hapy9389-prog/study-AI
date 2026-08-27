@@ -55,4 +55,7 @@ export interface AppState {
 export type Action =
   | { type: "START_STUDY"; studySession: StudySession }
   | { type: "COMPLETE_STUDY" }
-  | { type: "SELECT_FEELING"; feelingId: FeelingChoice["id"]; aiReaction?: string };
+  | { type: "SELECT_FEELING"; feelingId: FeelingChoice["id"]; aiReaction?: string }
+  // 개발 전용 — startedAt을 과거로 옮겨 경과 시간을 시뮬레이션한다.
+  // production reducer에서는 무시된다(app/page.tsx).
+  | { type: "DEBUG_SET_ELAPSED"; elapsedSeconds: number };

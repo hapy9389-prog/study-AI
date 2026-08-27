@@ -39,6 +39,19 @@ function reducer(state: AppState, action: Action): AppState {
         selectedFeelingId: action.feelingId,
         aiReaction: action.aiReaction,
       };
+    case "DEBUG_SET_ELAPSED": {
+      // 개발 전용: startedAt만 과거로 옮겨 기존 타이머 계산이 원하는 경과
+      // 시간을 내도록 한다. production에서는 아무 동작도 하지 않는다.
+      if (process.env.NODE_ENV !== "development") return state;
+      if (!state.studySession) return state;
+      return {
+        ...state,
+        studySession: {
+          ...state.studySession,
+          startedAt: Date.now() - action.elapsedSeconds * 1000,
+        },
+      };
+    }
     default:
       return state;
   }
@@ -57,6 +70,9 @@ export default function Home() {
           studySession={state.studySession}
           onStartStudy={(session) => dispatch({ type: "START_STUDY", studySession: session })}
           onCompleteStudy={() => dispatch({ type: "COMPLETE_STUDY" })}
+          onDebugSetElapsed={(elapsedSeconds) =>
+            dispatch({ type: "DEBUG_SET_ELAPSED", elapsedSeconds })
+          }
         />
       )}
 
