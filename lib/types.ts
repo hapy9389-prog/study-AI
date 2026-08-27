@@ -27,6 +27,24 @@ export interface FeelingChoice {
   label: string;
 }
 
+// 완료되어 localStorage에 저장된 과거 공부 1건. 진행 중인 StudySession과
+// 다른 개념이다 — StudyRecord는 불변 스냅샷이고, id/완료 시각과 그때 실제로
+// 화면에 쓰인 다온의 최종 문장(characterReaction)을 그대로 담는다.
+// 아직 이 기록은 Claude prompt에 전달하지 않는다(장기 기억 아님).
+export interface StudyRecord {
+  id: string;
+  subject: string;
+  /** 사용자가 설정했던 목표 시간(분). 실제 공부 시간과 혼동 금지. */
+  targetMinutes: number;
+  /** 측정된 실제 공부 시간(초). */
+  elapsedSeconds: number;
+  feelingId: FeelingChoice["id"];
+  /** done 화면에서 실제로 쓰인 최종 문장(AI 성공 시 AI 문장, 실패 시 Mock fallback). */
+  characterReaction: string;
+  /** new Date().toISOString() */
+  completedAt: string;
+}
+
 export interface ReactionData {
   choices: FeelingChoice[];
 }
@@ -56,6 +74,8 @@ export type Action =
   | { type: "START_STUDY"; studySession: StudySession }
   | { type: "COMPLETE_STUDY" }
   | { type: "SELECT_FEELING"; feelingId: FeelingChoice["id"]; aiReaction?: string }
+  // done 화면에서 "새 공부 시작하기" — 처음 상태로 되돌린다.
+  | { type: "RESET" }
   // 개발 전용 — startedAt을 과거로 옮겨 경과 시간을 시뮬레이션한다.
   // production reducer에서는 무시된다(app/page.tsx).
   | { type: "DEBUG_SET_ELAPSED"; elapsedSeconds: number };
