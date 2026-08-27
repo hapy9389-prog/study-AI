@@ -1,0 +1,48 @@
+import CharacterFace from "./CharacterFace";
+import { moodBadges } from "@/lib/mockData";
+import type { Expression, ViewState } from "@/lib/types";
+
+interface CharacterAreaProps {
+  phase: ViewState;
+}
+
+const expressionByPhase: Record<ViewState, Expression> = {
+  idle: "curious",
+  studying: "quiet",
+  reaction: "curious",
+  done: "happy",
+};
+
+// Core product rule: during `studying`, 다온 never speaks or throws an event —
+// only a static, calm "함께 있어요" label is shown. The reaction dialogue for
+// `reaction`/`done` lives in CharacterReaction/StudyMemoryCard, not here, so
+// there's never a duplicate speech bubble on screen.
+export default function CharacterArea({ phase }: CharacterAreaProps) {
+  return (
+    <section className="flex flex-col items-center gap-3 px-6">
+      <CharacterFace expression={expressionByPhase[phase]} />
+
+      {phase === "idle" && (
+        <div className="max-w-[260px] rounded-2xl bg-white px-4 py-3 text-center text-sm shadow-sm">
+          <p>오늘은 뭐 공부할 거야?</p>
+          <p className="text-warm-gray">끝나면 나도 알고 싶어!</p>
+        </div>
+      )}
+
+      {phase === "studying" && (
+        <p className="text-xs text-warm-gray">다온이가 조용히 함께 있어요</p>
+      )}
+
+      <div className="mt-1 flex flex-wrap justify-center gap-2">
+        {moodBadges.map((badge) => (
+          <span
+            key={badge}
+            className="rounded-full bg-lavender px-3 py-1 text-xs font-medium text-cocoa"
+          >
+            {badge}
+          </span>
+        ))}
+      </div>
+    </section>
+  );
+}

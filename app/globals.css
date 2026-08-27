@@ -1,0 +1,17 @@
+@import "tailwindcss";
+
+@theme {
+  --color-cream: #fff8f0;
+  --color-peach: #ffd9c0;
+  --color-peach-deep: #ffb088;
+  --color-lavender: #e4d9ff;
+  --color-lavender-deep: #c7b3f5;
+  --color-mint: #c9f2e1;
+  --color-warm-gray: #8b7e74;
+  --color-cocoa: #5a4a3f;
+}
+
+body {
+  background: var(--color-cream);
+  color: var(--color-cocoa);
+}
