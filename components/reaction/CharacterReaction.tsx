@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { reactionData, buildReactionLine } from "@/lib/mockData";
+import { loadRecentMemories } from "@/lib/studyRecords";
 import type { FeelingChoice, StudySession } from "@/lib/types";
 
 interface CharacterReactionProps {
@@ -26,6 +27,10 @@ export default function CharacterReaction({ studySession, onSelectFeeling }: Cha
     // try/catch/finally 어디서든 안전하게 읽을 수 있도록 바깥 스코프에 선언.
     let aiReaction: string | undefined;
 
+    // 이 시점엔 현재 세션이 아직 저장 전이므로 과거 기록만 담긴다.
+    // loadRecentMemories()는 throw하지 않는다(최악의 경우 []) — 별도 방어 불필요.
+    const recentMemories = loadRecentMemories();
+
     try {
       const response = await fetch("/api/reaction", {
         method: "POST",
@@ -35,6 +40,7 @@ export default function CharacterReaction({ studySession, onSelectFeeling }: Cha
           targetMinutes: studySession.targetMinutes,
           elapsedSeconds: studySession.elapsedSeconds ?? 0,
           feelingId,
+          recentMemories,
         }),
       });
 

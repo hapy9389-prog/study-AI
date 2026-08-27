@@ -30,7 +30,7 @@ export interface FeelingChoice {
 // 완료되어 localStorage에 저장된 과거 공부 1건. 진행 중인 StudySession과
 // 다른 개념이다 — StudyRecord는 불변 스냅샷이고, id/완료 시각과 그때 실제로
 // 화면에 쓰인 다온의 최종 문장(characterReaction)을 그대로 담는다.
-// 아직 이 기록은 Claude prompt에 전달하지 않는다(장기 기억 아님).
+// 최근 일부는 StudyMemoryContext로 추려 Claude prompt에 전달된다(characterReaction 제외).
 export interface StudyRecord {
   id: string;
   subject: string;
@@ -42,6 +42,17 @@ export interface StudyRecord {
   /** done 화면에서 실제로 쓰인 최종 문장(AI 성공 시 AI 문장, 실패 시 Mock fallback). */
   characterReaction: string;
   /** new Date().toISOString() */
+  completedAt: string;
+}
+
+// Claude 프롬프트에 넘기는 최소 과거 기억. StudyRecord에서 필요한 사실만 추린다.
+// characterReaction(과거 AI 문장)은 넣지 않는다 — AI가 자기 문장을 따라 쓰는 것을
+// 막고, 프롬프트/비용을 작게 유지하기 위함. targetMinutes도 이번 기억 반응에는
+// 불필요해서 뺀다(실제 공부 시간이 더 중요).
+export interface StudyMemoryContext {
+  subject: string;
+  elapsedSeconds: number;
+  feelingId: FeelingChoice["id"];
   completedAt: string;
 }
 

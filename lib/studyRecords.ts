@@ -1,8 +1,8 @@
 // 완료된 공부 기록(StudyRecord)의 localStorage 영속화 유틸.
 // 저장 + 조회만 담당한다. 삭제/수정/검색/통계는 없다.
-// 아직 이 기록을 Claude prompt에 전달하지 않는다(장기 기억 아님).
+// 새 공부 반응 생성 시 최근 일부(loadRecentMemories)를 Claude prompt에 함께 넘긴다.
 
-import type { FeelingChoice, StudyRecord } from "./types";
+import type { FeelingChoice, StudyMemoryContext, StudyRecord } from "./types";
 import { reactionData } from "./mockData";
 
 const STUDY_RECORDS_STORAGE_KEY = "study-ai:study-records";
@@ -12,6 +12,10 @@ const MAX_STORED_RECORDS = 50;
 
 // 기억 화면에서 한 번에 표시할 최근 기록 수.
 export const RECENT_RECORDS_LIMIT = 20;
+
+// 새 공부 반응 생성 시 Claude 프롬프트에 함께 넘길 최근 기억 수.
+// 프롬프트/비용을 작게 유지한다(서버도 같은 수로 다시 자른다).
+export const PROMPT_MEMORY_LIMIT = 5;
 
 const FEELING_IDS = new Set<string>(reactionData.choices.map((choice) => choice.id));
 
@@ -75,6 +79,20 @@ export function saveStudyRecord(record: StudyRecord): void {
   } catch {
     // 용량 초과 / 저장 차단 등 — 기록 저장은 핵심 흐름을 막지 않는다.
   }
+}
+
+// 새 공부 반응 요청에 함께 보낼 최근 기억. 저장이 최신순(앞이 최신)이라
+// slice로 최근 N개를 그대로 얻는다. loadStudyRecords()가 SSR/깨진 JSON에서
+// []를 돌려주므로 로드 실패 시에도 자연히 []가 된다 — 현재 공부 반응을 막지 않는다.
+export function loadRecentMemories(): StudyMemoryContext[] {
+  return loadStudyRecords()
+    .slice(0, PROMPT_MEMORY_LIMIT)
+    .map((record) => ({
+      subject: record.subject,
+      elapsedSeconds: record.elapsedSeconds,
+      feelingId: record.feelingId,
+      completedAt: record.completedAt,
+    }));
 }
 
 export function feelingLabel(feelingId: FeelingChoice["id"]): string {
