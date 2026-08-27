@@ -4,16 +4,22 @@ import type { FeelingChoice, StudySession } from "@/lib/types";
 interface StudyMemoryCardProps {
   studySession: StudySession;
   feelingId: FeelingChoice["id"];
+  // /api/reaction 이 생성한 다온의 한마디. 없으면 Mock responseLines fallback.
+  aiReaction?: string;
 }
 
 // No "EXP +10" — growth is expressed as a single remembered-topic message
 // plus one plain sentence nudging toward the next study session (never a
 // mini-game or notification-style hook, just a calm line).
-export default function StudyMemoryCard({ studySession, feelingId }: StudyMemoryCardProps) {
+export default function StudyMemoryCard({
+  studySession,
+  feelingId,
+  aiReaction,
+}: StudyMemoryCardProps) {
   return (
     <section className="mx-6 rounded-3xl bg-white p-5 shadow-sm">
       <div className="rounded-2xl bg-lavender/50 px-4 py-3 text-sm text-cocoa">
-        {memoryResult.responseLines[feelingId]}
+        {aiReaction ?? memoryResult.responseLines[feelingId]}
       </div>
 
       <div className="mt-4 rounded-2xl bg-mint/60 px-4 py-4 text-center">

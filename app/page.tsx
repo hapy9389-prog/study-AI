@@ -33,7 +33,12 @@ function reducer(state: AppState, action: Action): AppState {
       };
     }
     case "SELECT_FEELING":
-      return { ...state, phase: "done", selectedFeelingId: action.feelingId };
+      return {
+        ...state,
+        phase: "done",
+        selectedFeelingId: action.feelingId,
+        aiReaction: action.aiReaction,
+      };
     default:
       return state;
   }
@@ -58,14 +63,24 @@ export default function Home() {
       {state.phase === "reaction" && state.studySession && (
         <CharacterReaction
           studySession={state.studySession}
-          onSelectFeeling={(feelingId) => dispatch({ type: "SELECT_FEELING", feelingId })}
+          onSelectFeeling={(feelingId, aiReaction) =>
+            dispatch({ type: "SELECT_FEELING", feelingId, aiReaction })
+          }
         />
       )}
 
       {state.phase === "done" && state.studySession && state.selectedFeelingId && (
         <>
-          <StudyMemoryCard studySession={state.studySession} feelingId={state.selectedFeelingId} />
-          <StudyRecordSummary studySession={state.studySession} feelingId={state.selectedFeelingId} />
+          <StudyMemoryCard
+            studySession={state.studySession}
+            feelingId={state.selectedFeelingId}
+            aiReaction={state.aiReaction}
+          />
+          <StudyRecordSummary
+            studySession={state.studySession}
+            feelingId={state.selectedFeelingId}
+            aiReaction={state.aiReaction}
+          />
         </>
       )}
     </MobileLayout>

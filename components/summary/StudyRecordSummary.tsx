@@ -4,9 +4,15 @@ import type { FeelingChoice, StudySession } from "@/lib/types";
 interface StudyRecordSummaryProps {
   studySession: StudySession;
   feelingId: FeelingChoice["id"];
+  // /api/reaction 이 생성한 다온의 한마디. 없으면 Mock responseLines fallback.
+  aiReaction?: string;
 }
 
-export default function StudyRecordSummary({ studySession, feelingId }: StudyRecordSummaryProps) {
+export default function StudyRecordSummary({
+  studySession,
+  feelingId,
+  aiReaction,
+}: StudyRecordSummaryProps) {
   const feelingLabel =
     reactionData.choices.find((choice) => choice.id === feelingId)?.label ?? "";
   const elapsedSeconds = studySession.elapsedSeconds ?? 0;
@@ -19,7 +25,7 @@ export default function StudyRecordSummary({ studySession, feelingId }: StudyRec
     { label: "목표 공부 시간", value: `${studySession.targetMinutes}분` },
     { label: "실제 공부 시간", value: formatMinutesAndSeconds(elapsedSeconds) },
     { label: "오늘의 감상", value: feelingLabel },
-    { label: "다온이의 한마디", value: memoryResult.responseLines[feelingId] },
+    { label: "다온이의 한마디", value: aiReaction ?? memoryResult.responseLines[feelingId] },
   ];
 
   return (

@@ -47,9 +47,12 @@ export interface AppState {
   phase: ViewState;
   studySession?: StudySession;
   selectedFeelingId?: FeelingChoice["id"];
+  // 감상 선택 후 /api/reaction 이 생성한 다온의 한마디. API 실패 시 undefined로
+  // 남고, 화면에서는 mockData.responseLines fallback을 쓴다.
+  aiReaction?: string;
 }
 
 export type Action =
   | { type: "START_STUDY"; studySession: StudySession }
   | { type: "COMPLETE_STUDY" }
-  | { type: "SELECT_FEELING"; feelingId: FeelingChoice["id"] };
+  | { type: "SELECT_FEELING"; feelingId: FeelingChoice["id"]; aiReaction?: string };
