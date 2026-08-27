@@ -14,7 +14,7 @@ const initialState: AppState = { phase: "idle" };
 function reducer(state: AppState, action: Action): AppState {
   switch (action.type) {
     case "START_STUDY":
-      return { ...state, phase: "studying" };
+      return { ...state, phase: "studying", studySession: action.studySession };
     case "COMPLETE_STUDY":
       // 공부 완료 즉시 반응 화면으로 — 별도 확인 화면이나 추가 클릭 없음.
       return { ...state, phase: "reaction" };
@@ -35,21 +35,23 @@ export default function Home() {
       {(state.phase === "idle" || state.phase === "studying") && (
         <StudyCard
           phase={state.phase}
-          onStartStudy={() => dispatch({ type: "START_STUDY" })}
+          studySession={state.studySession}
+          onStartStudy={(session) => dispatch({ type: "START_STUDY", studySession: session })}
           onCompleteStudy={() => dispatch({ type: "COMPLETE_STUDY" })}
         />
       )}
 
-      {state.phase === "reaction" && (
+      {state.phase === "reaction" && state.studySession && (
         <CharacterReaction
+          studySession={state.studySession}
           onSelectFeeling={(feelingId) => dispatch({ type: "SELECT_FEELING", feelingId })}
         />
       )}
 
-      {state.phase === "done" && state.selectedFeelingId && (
+      {state.phase === "done" && state.studySession && state.selectedFeelingId && (
         <>
-          <StudyMemoryCard feelingId={state.selectedFeelingId} />
-          <StudyRecordSummary feelingId={state.selectedFeelingId} />
+          <StudyMemoryCard studySession={state.studySession} feelingId={state.selectedFeelingId} />
+          <StudyRecordSummary studySession={state.studySession} feelingId={state.selectedFeelingId} />
         </>
       )}
     </MobileLayout>

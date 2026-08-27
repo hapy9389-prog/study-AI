@@ -1,6 +1,9 @@
-// Mock data for the Phase 1 UI prototype. No real AI/DB — every value here is static.
+// Mock data for the UI prototype. No real AI/DB — the character info and
+// feeling-related copy here are all static; study subject/time now come
+// from the user (see lib/types.ts StudySession), fed into the template
+// functions below.
 
-import type { Character, StudyInfo, ReactionData, MemoryResult } from "./types";
+import type { Character, ReactionData, MemoryResult } from "./types";
 
 export const daon: Character = {
   name: "다온",
@@ -11,13 +14,7 @@ export const daon: Character = {
 
 export const moodBadges: string[] = ["호기심 많음", "오늘도 배우고 싶음", "나를 믿고 있음"];
 
-export const todayStudy: StudyInfo = {
-  subject: "영어 회화 기초 표현",
-  durationMinutes: 45,
-};
-
 export const reactionData: ReactionData = {
-  characterLine: "오늘 영어 공부하는 거 옆에서 봤어! 어땠어?",
   choices: [
     { id: "proud", label: "뿌듯해" },
     { id: "tired", label: "조금 힘들었어" },
@@ -26,7 +23,6 @@ export const reactionData: ReactionData = {
 };
 
 export const memoryResult: MemoryResult = {
-  rememberedTopic: "영어 회화 기초 표현",
   memoryMessage: "다온이가 오늘의 공부를 기억했어요.",
   nextStudyNudge: "내일도 같이 공부해볼까?",
   responseLines: {
@@ -35,3 +31,14 @@ export const memoryResult: MemoryResult = {
     fun: "재밌었다니 다행이다! 나도 같이 즐거웠어.",
   },
 };
+
+// targetMinutes is a goal the user set, not a measured elapsed time (no
+// timer yet — Phase 3) — so this line never implies "집중했다", only that
+// the goal was that many minutes.
+export function buildReactionLine(subject: string, targetMinutes: number): string {
+  return `오늘 ${subject} 공부했구나! 목표는 ${targetMinutes}분이었지! 어땠어?`;
+}
+
+export function buildMemoryLine(subject: string): string {
+  return `오늘 공부한 주제: ${subject}`;
+}

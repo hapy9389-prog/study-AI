@@ -1,17 +1,20 @@
-import { todayStudy, memoryResult, reactionData } from "@/lib/mockData";
-import type { FeelingChoice } from "@/lib/types";
+import { memoryResult, reactionData } from "@/lib/mockData";
+import type { FeelingChoice, StudySession } from "@/lib/types";
 
 interface StudyRecordSummaryProps {
+  studySession: StudySession;
   feelingId: FeelingChoice["id"];
 }
 
-export default function StudyRecordSummary({ feelingId }: StudyRecordSummaryProps) {
+export default function StudyRecordSummary({ studySession, feelingId }: StudyRecordSummaryProps) {
   const feelingLabel =
     reactionData.choices.find((choice) => choice.id === feelingId)?.label ?? "";
 
+  // "목표 공부 시간" — not "공부 시간": there is no timer yet, so this is the
+  // goal the user set, not a measured elapsed duration (Phase 3 will add that).
   const rows: { label: string; value: string }[] = [
-    { label: "오늘 공부", value: todayStudy.subject },
-    { label: "공부 시간", value: `${todayStudy.durationMinutes}분` },
+    { label: "오늘 공부", value: studySession.subject },
+    { label: "목표 공부 시간", value: `${studySession.targetMinutes}분` },
     { label: "오늘의 감상", value: feelingLabel },
     { label: "다온이의 한마디", value: memoryResult.responseLines[feelingId] },
   ];
