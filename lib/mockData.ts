@@ -26,9 +26,9 @@ export const memoryResult: MemoryResult = {
   memoryMessage: "다온이가 오늘의 공부를 기억했어요.",
   nextStudyNudge: "내일도 같이 공부해볼까?",
   responseLines: {
-    proud: "그치! 나도 옆에서 보면서 뿌듯했어.",
-    tired: "힘들었지만 그래도 끝까지 했네, 대단해!",
-    fun: "재밌었다니 다행이다! 나도 같이 즐거웠어.",
+    proud: "그치, 나도 옆에서 보면서 뿌듯했어.",
+    tired: "오늘은 좀 힘들었구나. 여기까지 같이 있었던 것만으로도 괜찮아.",
+    fun: "재밌었다니, 나도 옆에서 괜히 궁금해졌어.",
   },
 };
 
