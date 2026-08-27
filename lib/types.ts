@@ -10,11 +10,16 @@ export interface Character {
   currentInterest: string;
 }
 
-// A user-entered study session. `targetMinutes` is a goal the user set, not
-// an elapsed/measured duration — there is no timer yet (that's Phase 3).
+// A user-entered study session. `targetMinutes` is a goal the user set.
+// `startedAt`/`elapsedSeconds` are stamped by the reducer (Phase 3) — never
+// set by StudyCard directly, so components only ever read them.
 export interface StudySession {
   subject: string;
   targetMinutes: number;
+  /** Date.now() ms timestamp, stamped by the reducer on START_STUDY. */
+  startedAt?: number;
+  /** Final measured elapsed seconds, stamped by the reducer on COMPLETE_STUDY. */
+  elapsedSeconds?: number;
 }
 
 export interface FeelingChoice {

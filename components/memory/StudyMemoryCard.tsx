@@ -1,4 +1,4 @@
-import { memoryResult, buildMemoryLine } from "@/lib/mockData";
+import { memoryResult, buildMemoryLine, formatTogetherMinutes } from "@/lib/mockData";
 import type { FeelingChoice, StudySession } from "@/lib/types";
 
 interface StudyMemoryCardProps {
@@ -19,6 +19,9 @@ export default function StudyMemoryCard({ studySession, feelingId }: StudyMemory
       <div className="mt-4 rounded-2xl bg-mint/60 px-4 py-4 text-center">
         <p className="text-sm font-semibold text-cocoa">{memoryResult.memoryMessage}</p>
         <p className="mt-1 text-xs text-warm-gray">{buildMemoryLine(studySession.subject)}</p>
+        <p className="mt-1 text-xs text-warm-gray">
+          함께한 시간: {formatTogetherMinutes(studySession.elapsedSeconds ?? 0)}
+        </p>
       </div>
 
       <p className="mt-3 text-center text-sm text-cocoa">{memoryResult.nextStudyNudge}</p>

@@ -9,7 +9,7 @@ interface CharacterReactionProps {
 // Shown only right after [공부 완료] — a single short line + one round of
 // feeling chips. No open-ended chat, no repeated turns.
 export default function CharacterReaction({ studySession, onSelectFeeling }: CharacterReactionProps) {
-  const characterLine = buildReactionLine(studySession.subject, studySession.targetMinutes);
+  const characterLine = buildReactionLine(studySession.subject, studySession.elapsedSeconds ?? 0);
 
   return (
     <section className="mx-6 rounded-3xl bg-white p-5 shadow-sm">

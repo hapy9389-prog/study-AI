@@ -1,4 +1,4 @@
-import { memoryResult, reactionData } from "@/lib/mockData";
+import { memoryResult, reactionData, formatMinutesAndSeconds, buildGoalMessage } from "@/lib/mockData";
 import type { FeelingChoice, StudySession } from "@/lib/types";
 
 interface StudyRecordSummaryProps {
@@ -9,12 +9,15 @@ interface StudyRecordSummaryProps {
 export default function StudyRecordSummary({ studySession, feelingId }: StudyRecordSummaryProps) {
   const feelingLabel =
     reactionData.choices.find((choice) => choice.id === feelingId)?.label ?? "";
+  const elapsedSeconds = studySession.elapsedSeconds ?? 0;
+  const goalMessage = buildGoalMessage(studySession.targetMinutes, elapsedSeconds);
 
-  // "목표 공부 시간" — not "공부 시간": there is no timer yet, so this is the
-  // goal the user set, not a measured elapsed duration (Phase 3 will add that).
+  // "목표 공부 시간"(사용자가 설정한 목표)과 "실제 공부 시간"(측정값)을
+  // 절대 같은 의미로 섞지 않는다.
   const rows: { label: string; value: string }[] = [
     { label: "오늘 공부", value: studySession.subject },
     { label: "목표 공부 시간", value: `${studySession.targetMinutes}분` },
+    { label: "실제 공부 시간", value: formatMinutesAndSeconds(elapsedSeconds) },
     { label: "오늘의 감상", value: feelingLabel },
     { label: "다온이의 한마디", value: memoryResult.responseLines[feelingId] },
   ];
@@ -30,6 +33,9 @@ export default function StudyRecordSummary({ studySession, feelingId }: StudyRec
           </div>
         ))}
       </dl>
+      <p className="mt-3 rounded-2xl bg-mint/60 px-4 py-2 text-center text-sm font-medium text-cocoa">
+        {goalMessage}
+      </p>
     </section>
   );
 }

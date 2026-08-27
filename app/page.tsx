@@ -14,10 +14,24 @@ const initialState: AppState = { phase: "idle" };
 function reducer(state: AppState, action: Action): AppState {
   switch (action.type) {
     case "START_STUDY":
-      return { ...state, phase: "studying", studySession: action.studySession };
-    case "COMPLETE_STUDY":
+      return {
+        ...state,
+        phase: "studying",
+        studySession: { ...action.studySession, startedAt: Date.now() },
+      };
+    case "COMPLETE_STUDY": {
       // 공부 완료 즉시 반응 화면으로 — 별도 확인 화면이나 추가 클릭 없음.
-      return { ...state, phase: "reaction" };
+      if (!state.studySession) {
+        return { ...state, phase: "reaction" };
+      }
+      const startedAt = state.studySession.startedAt ?? Date.now();
+      const elapsedSeconds = Math.floor((Date.now() - startedAt) / 1000);
+      return {
+        ...state,
+        phase: "reaction",
+        studySession: { ...state.studySession, elapsedSeconds },
+      };
+    }
     case "SELECT_FEELING":
       return { ...state, phase: "done", selectedFeelingId: action.feelingId };
     default:

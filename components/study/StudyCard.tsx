@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { formatClock } from "@/lib/mockData";
 import type { StudySession } from "@/lib/types";
 
 interface StudyCardProps {
@@ -19,6 +20,21 @@ export default function StudyCard({ phase, studySession, onStartStudy, onComplet
   const [subject, setSubject] = useState("");
   const [targetMinutes, setTargetMinutes] = useState<number | null>(null);
   const [customMinutes, setCustomMinutes] = useState("");
+  const [liveElapsedSeconds, setLiveElapsedSeconds] = useState(0);
+
+  // 매초 Date.now() - startedAt을 다시 계산해서 state에 반영한다(단순 += 1이
+  // 아님) — 브라우저가 잠시 느려지거나 탭이 백그라운드였다 돌아와도 drift가
+  // 쌓이지 않는다. Date.now() 호출은 이 effect(인터벌 콜백) 안에서만 하고
+  // 렌더 본문에서는 호출하지 않는다(React purity 규칙). phase가 studying을
+  // 벗어나면 StudyCard가 unmount되어 cleanup이 자동으로 interval을 정리한다.
+  useEffect(() => {
+    if (phase !== "studying" || !studySession?.startedAt) return;
+    const startedAt = studySession.startedAt;
+    const tick = () => setLiveElapsedSeconds(Math.floor((Date.now() - startedAt) / 1000));
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [phase, studySession?.startedAt]);
 
   const trimmedSubject = subject.trim();
   const isSubjectValid = trimmedSubject.length > 0;
@@ -97,6 +113,9 @@ export default function StudyCard({ phase, studySession, onStartStudy, onComplet
       {phase === "studying" && studySession && (
         <div className="flex flex-col items-center gap-3">
           <p className="text-base font-bold text-cocoa">{studySession.subject} 공부 중</p>
+          <p className="font-mono text-5xl font-bold tabular-nums text-lavender-deep">
+            {formatClock(liveElapsedSeconds)}
+          </p>
           <p className="text-sm text-warm-gray">목표 {studySession.targetMinutes}분</p>
           <p className="flex items-center gap-2 text-sm text-warm-gray">
             <span className="h-2 w-2 animate-pulse rounded-full bg-peach-deep" />
