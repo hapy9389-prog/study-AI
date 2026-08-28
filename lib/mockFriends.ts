@@ -1,12 +1,14 @@
-// 개발자 모드 데모 전용 Mock 친구 데이터.
+// Mock 친구 데이터. 데이터는 데모용이지만 이걸 쓰는 Social Check-in / 친구 공간
+// UI 는 production 에서도 렌더된다.
 //
 // 이 서비스에서 친구 기능의 목적은 경쟁이 아니라 "친구도 공부하고 있네 → 나도
 // 해야겠다"라는 사회적 동기다. 여기서는 그 감각만 데모로 보여준다.
 //
 // 실제 로그인 / 친구 추가 / 서버 DB / Realtime / Supabase 는 연결하지 않는다.
-// 나중에 실제 소스로 갈아끼울 때는 getFriendStudyStatuses() 하나만 교체하면 된다.
+// 나중에 실제 소스로 갈아끼울 때는 getFriendStudyStatuses() / getFriendRoomProfile()
+// 만 서버 데이터로 교체하면 된다.
 
-import type { FriendStudyStatus } from "./types";
+import type { FriendRoomProfile, FriendStudyStatus } from "./types";
 
 // now 를 인자로 받아 startedAt 을 상대 시간으로 만든다. 모듈 로드 시점의
 // Date.now() 를 리터럴로 박아두면 import 타이밍에 따라 값이 흔들릴 수 있다.
@@ -53,4 +55,19 @@ export function getFriendStudyStatuses(now: number = Date.now()): FriendStudySta
     cachedStatuses = createMockFriendStatuses(now);
   }
   return cachedStatuses;
+}
+
+// 친구별 공개 방 프로필(Study Space). 친구마다 공부량/방 성장 차이가 보이도록
+// 서로 다르게 둔다. 시간과 무관한 정적 값이라 캐시/now 가 필요 없다.
+// todayStudyMinutes 는 FriendStudyStatus 에서 읽는다(민수 34 / 서연 0 / 지훈 48).
+export const FRIEND_ROOM_PROFILES: FriendRoomProfile[] = [
+  { friendId: "friend-minsu", roomStage: 3, totalStudyMinutes: 420 },
+  { friendId: "friend-seoyeon", roomStage: 1, totalStudyMinutes: 45 },
+  { friendId: "friend-jihun", roomStage: 2, totalStudyMinutes: 165 },
+];
+
+export function getFriendRoomProfile(
+  friendId: string,
+): FriendRoomProfile | undefined {
+  return FRIEND_ROOM_PROFILES.find((profile) => profile.friendId === friendId);
 }

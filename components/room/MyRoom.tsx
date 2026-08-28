@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import CharacterFace from "@/components/character/CharacterFace";
+import RoomScene from "@/components/room/RoomScene";
 import { formatTotalStudyTime } from "@/lib/mockData";
 import { loadStudyRewardState } from "@/lib/studyRewards";
 import type {
@@ -23,73 +24,15 @@ import type {
 
 const STAGE_PREVIEWS: RoomStage[] = [1, 2, 3];
 
-function RoomScene({
-  stage,
+// 방 안의 다온. MyRoom / MyRoomScreen 둘 다 이 형태로 RoomScene 에 넘긴다.
+export function MyRoomCharacter({
   equippedAccessoryId,
 }: {
-  stage: RoomStage;
   equippedAccessoryId: CharacterAccessoryId | null;
 }) {
   return (
-    <div
-      className={`relative mt-3 h-44 w-full overflow-hidden rounded-2xl ${
-        stage >= 3 ? "bg-peach/25" : "bg-cream"
-      }`}
-    >
-      {/* Stage 3: 더 따뜻한 조명 — 은은한 빛 번짐 */}
-      {stage >= 3 && (
-        <span className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-peach-deep/25 blur-xl" />
-      )}
-
-      {/* 바닥 */}
-      <span className="absolute bottom-0 left-0 h-10 w-full bg-cocoa/10" />
-
-      {/* Stage 2: 러그 */}
-      {stage >= 2 && (
-        <span className="absolute bottom-2 left-1/2 h-6 w-40 -translate-x-1/2 rounded-full bg-lavender/45" />
-      )}
-
-      {/* 책상 + 의자 (Stage 1) */}
-      <span className="absolute bottom-9 left-6 h-2.5 w-24 rounded-sm bg-cocoa/25" />
-      <span className="absolute bottom-1 left-8 h-8 w-1.5 bg-cocoa/20" />
-      <span className="absolute bottom-1 right-24 h-6 w-1.5 bg-warm-gray/40" />
-      <span className="absolute bottom-6 right-[92px] h-1.5 w-6 rounded-sm bg-warm-gray/40" />
-
-      {/* Stage 2: 스탠드 */}
-      {stage >= 2 && (
-        <>
-          <span className="absolute bottom-9 left-10 h-12 w-px bg-warm-gray/50" />
-          <span className="absolute bottom-[76px] left-8 h-3 w-6 rounded-full bg-peach-deep/70" />
-        </>
-      )}
-
-      {/* Stage 2: 작은 식물 */}
-      {stage >= 2 && (
-        <>
-          <span className="absolute bottom-10 right-8 h-3 w-4 rounded-sm bg-cocoa/25" />
-          <span className="absolute bottom-[52px] right-[34px] h-4 w-4 rounded-full bg-mint/70" />
-        </>
-      )}
-
-      {/* Stage 3: 책장 */}
-      {stage >= 3 && (
-        <>
-          <span className="absolute bottom-10 right-6 h-20 w-10 rounded-sm bg-cocoa/15" />
-          <span className="absolute bottom-[68px] right-6 h-px w-10 bg-cocoa/20" />
-          <span className="absolute bottom-[52px] right-6 h-px w-10 bg-cocoa/20" />
-          <span className="absolute bottom-9 right-6 h-px w-10 bg-cocoa/20" />
-        </>
-      )}
-
-      {/* Stage 3: 작은 벽 장식 */}
-      {stage >= 3 && (
-        <span className="absolute left-6 top-4 h-6 w-8 rounded-sm border border-cocoa/20" />
-      )}
-
-      {/* 다온 — 항상 방 안에 있다 */}
-      <div className="absolute bottom-3 left-1/2 -translate-x-1/2 scale-[0.55] origin-bottom">
-        <CharacterFace expression="happy" accessoryId={equippedAccessoryId} />
-      </div>
+    <div className="absolute bottom-3 left-1/2 -translate-x-1/2 scale-[0.55] origin-bottom">
+      <CharacterFace expression="happy" accessoryId={equippedAccessoryId} />
     </div>
   );
 }
@@ -110,7 +53,10 @@ export default function MyRoom({ equippedAccessoryId = null }: MyRoomProps) {
     <section className="mx-6 rounded-3xl bg-white p-5 shadow-sm">
       <p className="text-xs font-medium text-warm-gray">내 방</p>
 
-      <RoomScene stage={stage} equippedAccessoryId={equippedAccessoryId} />
+      <RoomScene
+        stage={stage}
+        character={<MyRoomCharacter equippedAccessoryId={equippedAccessoryId} />}
+      />
 
       <div className="mt-3 flex flex-col gap-0.5 text-xs text-warm-gray">
         <span>

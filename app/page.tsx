@@ -10,13 +10,16 @@ import StudyMemoryCard from "@/components/memory/StudyMemoryCard";
 import StudyMemoryList from "@/components/memory/StudyMemoryList";
 import StudyRecordSummary from "@/components/summary/StudyRecordSummary";
 import FriendStudySection from "@/components/friends/FriendStudySection";
+import FriendRoomsSection from "@/components/friends/FriendRoomsSection";
+import FriendRoomScreen from "@/components/friends/FriendRoomScreen";
 import SocialCheckInScreen from "@/components/social/SocialCheckInScreen";
 import ReflectionTestPanel from "@/components/study/ReflectionTestPanel";
 import MyRoom from "@/components/room/MyRoom";
+import MyRoomScreen from "@/components/room/MyRoomScreen";
 import RewardResultCard from "@/components/room/RewardResultCard";
 import CharacterCustomization from "@/components/customization/CharacterCustomization";
 import { memoryResult } from "@/lib/mockData";
-import { getFriendStudyStatuses } from "@/lib/mockFriends";
+import { getFriendRoomProfile, getFriendStudyStatuses } from "@/lib/mockFriends";
 import {
   equipAccessory,
   loadCharacterCustomizationState,
@@ -24,7 +27,12 @@ import {
   saveCharacterCustomizationState,
   unequipAccessory,
 } from "@/lib/characterCustomization";
-import { createStudyRecord, saveStudyRecord } from "@/lib/studyRecords";
+import {
+  createStudyRecord,
+  getTodayStudyMinutes,
+  loadStudyRecords,
+  saveStudyRecord,
+} from "@/lib/studyRecords";
 import {
   loadCharacterGrowth,
   saveCharacterGrowth,
@@ -127,6 +135,15 @@ export default function Home() {
   const [rewardState, setRewardState] = useState(() => loadStudyRewardState());
   const [showCustomization, setShowCustomization] = useState(false);
 
+  // 친구 공간 / 내 공간 전체 화면. 새 ViewState 없이 순수 UI state 로 홈을 대체한다
+  // (CharacterCustomization 와 같은 early-return). idle 에서만 진입 가능.
+  const [selectedFriendId, setSelectedFriendId] = useState<string | null>(null);
+  const [showMyRoomScreen, setShowMyRoomScreen] = useState(false);
+  // 내 "오늘 공부시간" — StudyRecord 에서 계산. 클릭 시점에만 채운다(SSR 안 탐).
+  const [myTodayStudyMinutes, setMyTodayStudyMinutes] = useState<number | null>(
+    null,
+  );
+
   // 한 세션당 StudyRecord는 정확히 1개만 저장한다. 감상 선택은 이벤트 핸들러라
   // Strict Mode에서도 중복 실행되지 않지만, 연타/재진입 방어로 ref를 둔다.
   const recordSavedRef = useRef(false);
@@ -215,6 +232,14 @@ export default function Home() {
     setCustomization(next);
   };
 
+  // 내 공간을 열 때 최신 상태를 다시 읽는다 — 그 사이 공부 완료로 roomStage/누적/
+  // 오늘 공부시간이 바뀌었을 수 있다(handleSelectFeeling 은 localStorage 에만 저장).
+  const openMyRoomScreen = () => {
+    setRewardState(loadStudyRewardState());
+    setMyTodayStudyMinutes(getTodayStudyMinutes(loadStudyRecords(), Date.now()));
+    setShowMyRoomScreen(true);
+  };
+
   if (showCustomization) {
     return (
       <CharacterCustomization
@@ -233,6 +258,31 @@ export default function Home() {
       <SocialCheckInScreen
         friends={friends}
         onContinue={() => setShowSocialCheckIn(false)}
+      />
+    );
+  }
+
+  if (selectedFriendId) {
+    const friend = friends.find((f) => f.id === selectedFriendId);
+    const roomProfile = getFriendRoomProfile(selectedFriendId);
+    if (friend && roomProfile) {
+      return (
+        <FriendRoomScreen
+          friend={friend}
+          roomProfile={roomProfile}
+          onBack={() => setSelectedFriendId(null)}
+        />
+      );
+    }
+  }
+
+  if (showMyRoomScreen) {
+    return (
+      <MyRoomScreen
+        rewardState={rewardState}
+        equippedAccessoryId={customization.equippedAccessoryId}
+        todayStudyMinutes={myTodayStudyMinutes}
+        onBack={() => setShowMyRoomScreen(false)}
       />
     );
   }
@@ -288,13 +338,26 @@ export default function Home() {
           {state.phase === "idle" && (
             <>
               <MyRoom equippedAccessoryId={customization.equippedAccessoryId} />
-              <button
-                type="button"
-                onClick={openCustomization}
-                className="mx-6 rounded-full bg-lavender px-4 py-3 text-sm font-medium text-cocoa transition-colors hover:bg-lavender-deep hover:text-white"
-              >
-                다온 꾸미기
-              </button>
+              <div className="mx-6 flex gap-2">
+                <button
+                  type="button"
+                  onClick={openMyRoomScreen}
+                  className="flex-1 rounded-full bg-lavender px-4 py-3 text-sm font-medium text-cocoa transition-colors hover:bg-lavender-deep hover:text-white"
+                >
+                  내 방 크게 보기
+                </button>
+                <button
+                  type="button"
+                  onClick={openCustomization}
+                  className="flex-1 rounded-full bg-lavender px-4 py-3 text-sm font-medium text-cocoa transition-colors hover:bg-lavender-deep hover:text-white"
+                >
+                  다온 꾸미기
+                </button>
+              </div>
+              <FriendRoomsSection
+                friends={friends}
+                onVisit={setSelectedFriendId}
+              />
             </>
           )}
 

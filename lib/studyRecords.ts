@@ -119,3 +119,24 @@ export function formatCompletedAt(iso: string): string {
   if (dayDiff === 1) return `어제 ${time}`;
   return `${date.getMonth() + 1}월 ${date.getDate()}일 ${time}`;
 }
+
+// 오늘(로컬 자정~다음 자정) 완료된 기록의 실제 공부시간 합계를 분으로 돌려준다.
+// StudyRewardState.totalStudyMinutes(누적 평생)와 다른, "오늘치" 값이다.
+// now 를 인자로 받아 테스트 가능하고, 호출부(클릭 핸들러)에서만 실행돼 SSR 을 타지 않는다.
+export function getTodayStudyMinutes(
+  records: StudyRecord[],
+  now: number = Date.now(),
+): number {
+  const startOfDay = (d: Date) =>
+    new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const todayStart = startOfDay(new Date(now));
+  const todayEnd = todayStart + 86_400_000;
+
+  const totalSeconds = records.reduce((sum, record) => {
+    const at = new Date(record.completedAt).getTime();
+    if (Number.isNaN(at) || at < todayStart || at >= todayEnd) return sum;
+    return sum + Math.max(0, record.elapsedSeconds);
+  }, 0);
+
+  return Math.floor(totalSeconds / 60);
+}

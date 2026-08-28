@@ -165,6 +165,18 @@ export interface FriendStudyStatus {
   todayStudyMinutes: number;
 }
 
+// 친구에게 공개되는 Study Space 프로필. My Study Space(실제 localStorage)와 같은
+// "공개 정보" 개념 — 캐릭터·방 성장·공부시간까지만. coin·회고 답변·evidence·
+// CharacterGrowth 관심도 같은 개인 정보는 절대 넣지 않는다. 향후 실제 서버가
+// 붙으면 이 구조를 GET /users/:id/study-space 응답으로 교체할 수 있다.
+// todayStudyMinutes 는 FriendStudyStatus 에 이미 있으므로 중복 정의하지 않는다.
+export interface FriendRoomProfile {
+  /** FriendStudyStatus.id 와 매칭 */
+  friendId: string;
+  roomStage: RoomStage;
+  totalStudyMinutes: number;
+}
+
 // idle: 오늘 공부할 내용/목표 시간 입력
 // studying: 공부 중 (캐릭터는 조용히 함께 있을 뿐, 새 대사/이벤트 없음)
 // reaction: 공부 완료 직후 다온의 짧은 반응 + 감상 선택
