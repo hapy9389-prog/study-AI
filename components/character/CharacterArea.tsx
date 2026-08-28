@@ -1,9 +1,11 @@
 import CharacterScene, { type SceneKind } from "./CharacterScene";
 import { moodBadges } from "@/lib/mockData";
-import type { Expression, ViewState } from "@/lib/types";
+import type { CharacterAccessoryId, Expression, ViewState } from "@/lib/types";
 
 interface CharacterAreaProps {
   phase: ViewState;
+  /** 다온에 장착된 액세서리. 모든 phase 에서 유지된다. */
+  equippedAccessoryId?: CharacterAccessoryId | null;
 }
 
 const expressionByPhase: Record<ViewState, Expression> = {
@@ -25,10 +27,17 @@ const sceneByPhase: Record<ViewState, SceneKind> = {
 // only a static, calm "함께 있어요" label is shown. The reaction dialogue for
 // `reaction`/`done` lives in CharacterReaction/StudyMemoryCard, not here, so
 // there's never a duplicate speech bubble on screen.
-export default function CharacterArea({ phase }: CharacterAreaProps) {
+export default function CharacterArea({
+  phase,
+  equippedAccessoryId,
+}: CharacterAreaProps) {
   return (
     <section className="flex flex-col items-center gap-3 px-6">
-      <CharacterScene scene={sceneByPhase[phase]} expression={expressionByPhase[phase]} />
+      <CharacterScene
+        scene={sceneByPhase[phase]}
+        expression={expressionByPhase[phase]}
+        accessoryId={equippedAccessoryId}
+      />
 
       {phase === "idle" && (
         <div className="max-w-[260px] rounded-2xl bg-white px-4 py-3 text-center text-sm shadow-sm">

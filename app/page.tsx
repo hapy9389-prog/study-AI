@@ -14,8 +14,16 @@ import SocialCheckInScreen from "@/components/social/SocialCheckInScreen";
 import ReflectionTestPanel from "@/components/study/ReflectionTestPanel";
 import MyRoom from "@/components/room/MyRoom";
 import RewardResultCard from "@/components/room/RewardResultCard";
+import CharacterCustomization from "@/components/customization/CharacterCustomization";
 import { memoryResult } from "@/lib/mockData";
 import { getFriendStudyStatuses } from "@/lib/mockFriends";
+import {
+  equipAccessory,
+  loadCharacterCustomizationState,
+  purchaseAccessory,
+  saveCharacterCustomizationState,
+  unequipAccessory,
+} from "@/lib/characterCustomization";
 import { createStudyRecord, saveStudyRecord } from "@/lib/studyRecords";
 import {
   loadCharacterGrowth,
@@ -31,6 +39,7 @@ import {
 import type {
   AppState,
   Action,
+  CharacterAccessoryId,
   FeelingChoice,
   StudyRewardResult,
 } from "@/lib/types";
@@ -109,6 +118,15 @@ export default function Home() {
   // startedAt 안정성을 위해 모듈 캐시된 Mock 친구 목록을 한 번만 읽는다.
   const [friends] = useState(() => getFriendStudyStatuses());
 
+  // 다온 꾸미기 — page.tsx 가 customization/coin state 의 source 다. 장착 즉시
+  // CharacterArea/MyRoom 외형이 바뀌도록 여기서 관리하고 props 로 내려준다.
+  // showCustomization 은 순수 UI state(early-return 으로 홈을 대체).
+  const [customization, setCustomization] = useState(() =>
+    loadCharacterCustomizationState(),
+  );
+  const [rewardState, setRewardState] = useState(() => loadStudyRewardState());
+  const [showCustomization, setShowCustomization] = useState(false);
+
   // 한 세션당 StudyRecord는 정확히 1개만 저장한다. 감상 선택은 이벤트 핸들러라
   // Strict Mode에서도 중복 실행되지 않지만, 연타/재진입 방어로 ref를 둔다.
   const recordSavedRef = useRef(false);
@@ -166,6 +184,50 @@ export default function Home() {
     dispatch({ type: "SELECT_FEELING", feelingId, aiReaction, reward: rewardResult });
   };
 
+  // 꾸미기 화면을 열 때, 그 사이 공부 완료로 늘었을 수 있는 coin 을 최신값으로
+  // 다시 읽는다(handleSelectFeeling 은 localStorage 에만 저장하므로).
+  const openCustomization = () => {
+    setRewardState(loadStudyRewardState());
+    setCustomization(loadCharacterCustomizationState());
+    setShowCustomization(true);
+  };
+
+  // 구매: 메모리에서 reward/customization 둘 다 계산 → 둘 다 저장 → 둘 다 setState.
+  // 실패(코인 부족/이미 보유/무효)면 아무것도 바꾸지 않는다.
+  const handlePurchase = (id: CharacterAccessoryId) => {
+    const result = purchaseAccessory(rewardState, customization, id);
+    if (!result.success) return;
+    saveStudyRewardState(result.rewardState);
+    saveCharacterCustomizationState(result.customizationState);
+    setRewardState(result.rewardState);
+    setCustomization(result.customizationState);
+  };
+
+  const handleEquip = (id: CharacterAccessoryId) => {
+    const next = equipAccessory(customization, id);
+    saveCharacterCustomizationState(next);
+    setCustomization(next);
+  };
+
+  const handleUnequip = () => {
+    const next = unequipAccessory(customization);
+    saveCharacterCustomizationState(next);
+    setCustomization(next);
+  };
+
+  if (showCustomization) {
+    return (
+      <CharacterCustomization
+        coins={rewardState.coins}
+        customization={customization}
+        onPurchase={handlePurchase}
+        onEquip={handleEquip}
+        onUnequip={handleUnequip}
+        onBack={() => setShowCustomization(false)}
+      />
+    );
+  }
+
   if (showSocialCheckIn) {
     return (
       <SocialCheckInScreen
@@ -181,7 +243,10 @@ export default function Home() {
         <StudyMemoryList />
       ) : (
         <>
-          <CharacterArea phase={state.phase} />
+          <CharacterArea
+            phase={state.phase}
+            equippedAccessoryId={customization.equippedAccessoryId}
+          />
 
           {(state.phase === "idle" || state.phase === "studying") && (
             <StudyCard
@@ -218,8 +283,20 @@ export default function Home() {
           )}
 
           {/* 내 방: 누적 공부로 발전하는 장기 보상 공간. idle 에서만, 공부 시작
-              CTA 보다 아래에 둔다 — 홈의 가장 큰 CTA 가 되면 안 된다. */}
-          {state.phase === "idle" && <MyRoom />}
+              CTA 보다 아래에 둔다 — 홈의 가장 큰 CTA 가 되면 안 된다.
+              그 아래 "다온 꾸미기" 진입 — peach primary 보다 약한 톤. */}
+          {state.phase === "idle" && (
+            <>
+              <MyRoom equippedAccessoryId={customization.equippedAccessoryId} />
+              <button
+                type="button"
+                onClick={openCustomization}
+                className="mx-6 rounded-full bg-lavender px-4 py-3 text-sm font-medium text-cocoa transition-colors hover:bg-lavender-deep hover:text-white"
+              >
+                다온 꾸미기
+              </button>
+            </>
+          )}
 
           {state.phase === "reaction" && state.studySession && (
             <CharacterReaction

@@ -1,11 +1,13 @@
 import CharacterFace from "./CharacterFace";
-import type { Expression } from "@/lib/types";
+import type { CharacterAccessoryId, Expression } from "@/lib/types";
 
 export type SceneKind = "resting" | "studying";
 
 interface CharacterSceneProps {
   scene: SceneKind;
   expression: Expression;
+  /** 장착된 액세서리(있으면). 다온을 그리는 모든 씬에서 일관되게 전달된다. */
+  accessoryId?: CharacterAccessoryId | null;
 }
 
 // Placeholder scenery — 실제 캐릭터 아트 asset이 아직 없어서, 기존 순수 CSS/SVG
@@ -14,7 +16,11 @@ interface CharacterSceneProps {
 //
 // scene 매핑은 CharacterArea 가 phase 로부터 계산한다:
 //   idle / reaction / done → resting,  studying → studying
-export default function CharacterScene({ scene, expression }: CharacterSceneProps) {
+export default function CharacterScene({
+  scene,
+  expression,
+  accessoryId,
+}: CharacterSceneProps) {
   return (
     <div className="relative flex h-40 w-full max-w-[280px] items-end justify-center">
       {scene === "studying" ? (
@@ -38,7 +44,7 @@ export default function CharacterScene({ scene, expression }: CharacterSceneProp
         </>
       )}
       <div className="relative z-10 pb-2">
-        <CharacterFace expression={expression} />
+        <CharacterFace expression={expression} accessoryId={accessoryId} />
       </div>
     </div>
   );

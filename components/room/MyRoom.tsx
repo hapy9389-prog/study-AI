@@ -4,7 +4,11 @@ import { useState } from "react";
 import CharacterFace from "@/components/character/CharacterFace";
 import { formatTotalStudyTime } from "@/lib/mockData";
 import { loadStudyRewardState } from "@/lib/studyRewards";
-import type { RoomStage, StudyRewardState } from "@/lib/types";
+import type {
+  CharacterAccessoryId,
+  RoomStage,
+  StudyRewardState,
+} from "@/lib/types";
 
 // 홈 idle 화면에서만 보이는 "내 방" 영역. 공부를 완료할수록 코인/누적 공부시간이
 // 쌓이고, 누적 시간에 따라 방이 3단계로 조금씩 발전한다.
@@ -19,7 +23,13 @@ import type { RoomStage, StudyRewardState } from "@/lib/types";
 
 const STAGE_PREVIEWS: RoomStage[] = [1, 2, 3];
 
-function RoomScene({ stage }: { stage: RoomStage }) {
+function RoomScene({
+  stage,
+  equippedAccessoryId,
+}: {
+  stage: RoomStage;
+  equippedAccessoryId: CharacterAccessoryId | null;
+}) {
   return (
     <div
       className={`relative mt-3 h-44 w-full overflow-hidden rounded-2xl ${
@@ -78,13 +88,18 @@ function RoomScene({ stage }: { stage: RoomStage }) {
 
       {/* 다온 — 항상 방 안에 있다 */}
       <div className="absolute bottom-3 left-1/2 -translate-x-1/2 scale-[0.55] origin-bottom">
-        <CharacterFace expression="happy" />
+        <CharacterFace expression="happy" accessoryId={equippedAccessoryId} />
       </div>
     </div>
   );
 }
 
-export default function MyRoom() {
+interface MyRoomProps {
+  /** 다온에 장착된 액세서리. app/page.tsx 가 customization state 의 source 다. */
+  equippedAccessoryId?: CharacterAccessoryId | null;
+}
+
+export default function MyRoom({ equippedAccessoryId = null }: MyRoomProps) {
   const [state] = useState<StudyRewardState>(() => loadStudyRewardState());
   // 개발 전용 미리보기. localStorage 를 바꾸지 않고 방 그림만 갈아끼운다.
   const [previewStage, setPreviewStage] = useState<RoomStage | null>(null);
@@ -95,7 +110,7 @@ export default function MyRoom() {
     <section className="mx-6 rounded-3xl bg-white p-5 shadow-sm">
       <p className="text-xs font-medium text-warm-gray">내 방</p>
 
-      <RoomScene stage={stage} />
+      <RoomScene stage={stage} equippedAccessoryId={equippedAccessoryId} />
 
       <div className="mt-3 flex flex-col gap-0.5 text-xs text-warm-gray">
         <span>

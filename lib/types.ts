@@ -124,6 +124,23 @@ export interface MemoryResult {
   responseLines: Record<FeelingChoice["id"], string>;
 }
 
+// 공부로 얻은 coin(StudyRewardState.coins)을 소비해 다온에게 장착하는 순수 외형
+// 아이템. 능력치·세트효과·희귀도·뽑기 없음. coin 은 StudyRewardState 하나만
+// source of truth 이므로 여기서 coin 을 따로 갖지 않는다(lib/characterCustomization.ts).
+export type CharacterAccessoryId = "glasses" | "hat" | "headphones" | "star-pin";
+
+export interface CharacterAccessory {
+  id: CharacterAccessoryId;
+  name: string;
+  price: number;
+}
+
+export interface CharacterCustomizationState {
+  ownedAccessoryIds: CharacterAccessoryId[];
+  /** 한 번에 하나만 장착. null 이면 아무것도 장착하지 않은 기본 모습. */
+  equippedAccessoryId: CharacterAccessoryId | null;
+}
+
 // Mock 친구 상태. 데이터는 데모용(실제 친구/DB/Auth 아님, lib/mockFriends.ts)이지만
 // 이 상태를 쓰는 Social Check-in 진입 화면은 production 에서도 렌더된다.
 export type FriendStudyStatusType = "studying" | "completed" | "idle";
