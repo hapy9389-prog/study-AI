@@ -11,6 +11,11 @@ import StudyMemoryList from "@/components/memory/StudyMemoryList";
 import StudyRecordSummary from "@/components/summary/StudyRecordSummary";
 import { memoryResult } from "@/lib/mockData";
 import { createStudyRecord, saveStudyRecord } from "@/lib/studyRecords";
+import {
+  loadCharacterGrowth,
+  saveCharacterGrowth,
+  updateCharacterGrowthAfterStudy,
+} from "@/lib/characterGrowth";
 import type { AppState, Action, FeelingChoice } from "@/lib/types";
 
 const initialState: AppState = { phase: "idle" };
@@ -86,15 +91,28 @@ export default function Home() {
       // done 화면에서 실제로 보여줄 최종 문장. Claude 성공/실패 모두 이 값을 저장한다.
       const finalReaction =
         aiReaction ?? memoryResult.responseLines[feelingId];
-      saveStudyRecord(
-        createStudyRecord({
-          subject: session.subject,
-          targetMinutes: session.targetMinutes,
-          elapsedSeconds: session.elapsedSeconds ?? 0,
-          feelingId,
-          characterReaction: finalReaction,
-        }),
+      const record = createStudyRecord({
+        subject: session.subject,
+        targetMinutes: session.targetMinutes,
+        elapsedSeconds: session.elapsedSeconds ?? 0,
+        feelingId,
+        characterReaction: finalReaction,
+      });
+      saveStudyRecord(record);
+      // StudyRecord 하나가 완성되는 바로 이 시점에 성장 상태도 한 번만 갱신한다.
+      // recordSavedRef 가드가 한 세션 1회를 보장하므로 exposureCount는 정확히 +1.
+      // Claude 성공/실패와 무관하게(같은 이벤트) 반복 경험이 누적된다.
+      saveCharacterGrowth(
+        updateCharacterGrowthAfterStudy(
+          loadCharacterGrowth(),
+          session.subject,
+          record.completedAt,
+        ),
       );
+      if (process.env.NODE_ENV === "development") {
+        // 내부 상태다 — 아직 UI에 표시하지 않으므로 개발 중 검증용으로만 찍는다.
+        console.log("[growth]", loadCharacterGrowth());
+      }
     }
     dispatch({ type: "SELECT_FEELING", feelingId, aiReaction });
   };

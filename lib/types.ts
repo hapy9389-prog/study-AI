@@ -60,6 +60,29 @@ export interface ReactionData {
   choices: FeelingChoice[];
 }
 
+// 다온의 관심 단계. 내부 상태다 — 사용자 UI/Claude 프롬프트에 아직 노출하지 않는다.
+export type InterestStage = "new" | "familiar" | "interested";
+
+// 반복된 공부 경험이 다온에게 만든 익숙함/관심. StudyRecord("무슨 공부를 했나")와
+// 역할이 다르다 — 이쪽은 "같은 경험을 몇 번 함께했나"라는 반복성만 본다.
+export interface CharacterInterest {
+  /** normalizeSubject() 결과 — 같은 주제인지 비교하는 데만 쓴다. */
+  subjectKey: string;
+  /** 사용자가 최근 입력한 원래 주제명(trim). 나중에 자연스러운 문구 생성용. */
+  displayName: string;
+  /** 해당 주제를 완료한 세션 수. 한 세션당 정확히 +1(공부 시간과 무관). */
+  exposureCount: number;
+  /** 처음 경험한 시점. new Date().toISOString() */
+  firstSeenAt: string;
+  /** 최근 경험한 시점. new Date().toISOString() */
+  lastSeenAt: string;
+  interestStage: InterestStage;
+}
+
+export interface CharacterGrowthState {
+  interests: CharacterInterest[];
+}
+
 export interface MemoryResult {
   memoryMessage: string;
   nextStudyNudge: string;
