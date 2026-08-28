@@ -15,3 +15,53 @@ body {
   background: var(--color-cream);
   color: var(--color-cocoa);
 }
+
+/* --- 공통 UI 유틸 (Visual polish) ------------------------------------------
+   화면마다 손으로 재작성되던 카드/버튼/입력/칩을 한곳에서 통일한다.
+   색 역할: peach-deep = primary CTA, lavender = 선택/secondary,
+   mint = 완료·긍정 milestone 전용. cream+white+cocoa 가 기본. */
+
+@utility card {
+  @apply rounded-3xl bg-white p-5 shadow-sm;
+}
+
+@utility stat-row {
+  @apply flex items-center justify-between rounded-2xl bg-white px-4 py-3 shadow-sm;
+}
+
+@utility field {
+  @apply w-full rounded-2xl border border-peach/60 bg-cream px-4 py-3 text-sm text-cocoa outline-none transition-colors focus:border-lavender-deep;
+}
+
+/* 화면당 1개만. peach-deep + cocoa, 충분한 대비, 큰 터치 타깃. */
+@utility btn-primary {
+  @apply w-full rounded-2xl bg-peach-deep py-4 text-base font-semibold text-cocoa transition hover:brightness-95 active:brightness-95 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:brightness-100;
+}
+
+@utility btn-secondary {
+  @apply rounded-2xl border border-lavender-deep bg-white px-4 py-3 text-sm font-medium text-cocoa transition-colors hover:bg-lavender/40;
+}
+
+@utility btn-ghost {
+  @apply self-start rounded-full px-2 py-1 text-sm text-warm-gray transition-colors hover:text-cocoa;
+}
+
+/* pick-one 행 (목표 시간 / 감상 선택). 선택 = chip-active. */
+@utility chip {
+  @apply rounded-full bg-lavender/60 px-4 py-2 text-sm font-medium text-cocoa transition-colors hover:bg-lavender;
+}
+
+@utility chip-active {
+  @apply rounded-full bg-lavender-deep px-4 py-2 text-sm font-medium text-cocoa;
+}
+
+/* 다온이 말하는 줄. 앱 전체에서 동일 형태. */
+@utility daon-bubble {
+  @apply rounded-2xl bg-lavender/40 px-4 py-3 text-sm text-cocoa;
+}
+
+/* 완료·긍정 milestone 패널(컨테이너만). 여기 외에는 mint 를 쓰지 않는다.
+   글자 크기/색은 호출부에서 명시한다. */
+@utility milestone {
+  @apply rounded-2xl bg-mint/50 px-4 py-3;
+}

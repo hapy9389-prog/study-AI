@@ -338,18 +338,19 @@ export default function Home() {
           {state.phase === "idle" && (
             <>
               <MyRoom equippedAccessoryId={customization.equippedAccessoryId} />
-              <div className="mx-6 flex gap-2">
+              {/* MyRoom 카드에 붙는 세컨더리 액션 — [공부 시작]보다 약한 톤. */}
+              <div className="mx-6 -mt-2 flex gap-2">
                 <button
                   type="button"
                   onClick={openMyRoomScreen}
-                  className="flex-1 rounded-full bg-lavender px-4 py-3 text-sm font-medium text-cocoa transition-colors hover:bg-lavender-deep hover:text-white"
+                  className="btn-secondary flex-1"
                 >
                   내 방 크게 보기
                 </button>
                 <button
                   type="button"
                   onClick={openCustomization}
-                  className="flex-1 rounded-full bg-lavender px-4 py-3 text-sm font-medium text-cocoa transition-colors hover:bg-lavender-deep hover:text-white"
+                  className="btn-secondary flex-1"
                 >
                   다온 꾸미기
                 </button>
@@ -378,19 +379,20 @@ export default function Home() {
               <StudyRecordSummary
                 studySession={state.studySession}
                 feelingId={state.selectedFeelingId}
-                aiReaction={state.aiReaction}
               />
               {state.reward && <RewardResultCard reward={state.reward} />}
-              <button
-                type="button"
-                onClick={() => {
-                  recordSavedRef.current = false;
-                  dispatch({ type: "RESET" });
-                }}
-                className="mx-6 rounded-full bg-peach px-4 py-3 text-sm font-medium text-cocoa transition-colors hover:bg-peach-deep"
-              >
-                새 공부 시작하기
-              </button>
+              <div className="mx-6">
+                <button
+                  type="button"
+                  onClick={() => {
+                    recordSavedRef.current = false;
+                    dispatch({ type: "RESET" });
+                  }}
+                  className="btn-primary"
+                >
+                  새 공부 시작하기
+                </button>
+              </div>
               {process.env.NODE_ENV === "development" && <FriendStudySection />}
             </>
           )}

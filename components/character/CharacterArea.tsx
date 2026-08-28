@@ -40,7 +40,7 @@ export default function CharacterArea({
       />
 
       {phase === "idle" && (
-        <div className="max-w-[260px] rounded-2xl bg-white px-4 py-3 text-center text-sm shadow-sm">
+        <div className="daon-bubble max-w-[260px] text-center">
           <p>오늘은 뭐 공부할 거야?</p>
           <p className="text-warm-gray">끝나면 나도 알고 싶어!</p>
         </div>
@@ -50,16 +50,19 @@ export default function CharacterArea({
         <p className="text-xs text-warm-gray">다온이가 조용히 함께 있어요</p>
       )}
 
-      <div className="mt-1 flex flex-wrap justify-center gap-2">
-        {moodBadges.map((badge) => (
-          <span
-            key={badge}
-            className="rounded-full bg-lavender px-3 py-1 text-xs font-medium text-cocoa"
-          >
-            {badge}
-          </span>
-        ))}
-      </div>
+      {/* 무드 배지는 공부 시작 전(idle)에만. 공부 중·회고 중에는 시선을 뺏지 않는다. */}
+      {phase === "idle" && (
+        <div className="flex flex-wrap justify-center gap-1.5">
+          {moodBadges.map((badge) => (
+            <span
+              key={badge}
+              className="rounded-full bg-lavender/40 px-2.5 py-0.5 text-[11px] text-warm-gray"
+            >
+              {badge}
+            </span>
+          ))}
+        </div>
+      )}
     </section>
   );
 }

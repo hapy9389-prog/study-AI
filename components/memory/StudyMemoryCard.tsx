@@ -17,14 +17,16 @@ export default function StudyMemoryCard({
   aiReaction,
 }: StudyMemoryCardProps) {
   return (
-    <section className="mx-6 rounded-3xl bg-white p-5 shadow-sm">
-      <div className="rounded-2xl bg-lavender/50 px-4 py-3 text-sm text-cocoa">
+    <section className="card mx-6">
+      <div className="daon-bubble">
         {aiReaction ?? memoryResult.responseLines[feelingId]}
       </div>
 
-      <div className="mt-4 rounded-2xl bg-mint/60 px-4 py-4 text-center">
+      <div className="milestone mt-4 text-center">
         <p className="text-sm font-semibold text-cocoa">{memoryResult.memoryMessage}</p>
-        <p className="mt-1 text-xs text-warm-gray">{buildMemoryLine(studySession.subject)}</p>
+        <p className="mt-1 text-xs text-warm-gray">
+          {buildMemoryLine(studySession.subject)}
+        </p>
         <p className="mt-1 text-xs text-warm-gray">
           함께한 시간: {formatTogetherMinutes(studySession.elapsedSeconds ?? 0)}
         </p>

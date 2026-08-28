@@ -50,7 +50,7 @@ export default function MyRoom({ equippedAccessoryId = null }: MyRoomProps) {
   const stage = previewStage ?? state.roomStage;
 
   return (
-    <section className="mx-6 rounded-3xl bg-white p-5 shadow-sm">
+    <section className="card mx-6">
       <p className="text-xs font-medium text-warm-gray">내 방</p>
 
       <RoomScene
@@ -58,12 +58,18 @@ export default function MyRoom({ equippedAccessoryId = null }: MyRoomProps) {
         character={<MyRoomCharacter equippedAccessoryId={equippedAccessoryId} />}
       />
 
-      <div className="mt-3 flex flex-col gap-0.5 text-xs text-warm-gray">
-        <span>
-          지금까지 같이 공부한 시간 {formatTotalStudyTime(state.totalStudyMinutes)}
-        </span>
-        <span>보유 코인 {state.coins}</span>
-      </div>
+      <dl className="mt-3 flex flex-col gap-1.5">
+        <div className="flex justify-between gap-4 text-sm">
+          <dt className="shrink-0 text-warm-gray">지금까지 함께 공부한 시간</dt>
+          <dd className="text-right text-cocoa">
+            {formatTotalStudyTime(state.totalStudyMinutes)}
+          </dd>
+        </div>
+        <div className="flex justify-between gap-4 text-sm">
+          <dt className="shrink-0 text-warm-gray">보유 코인</dt>
+          <dd className="text-right text-cocoa">{state.coins}</dd>
+        </div>
+      </dl>
 
       {process.env.NODE_ENV === "development" && (
         <div className="mt-4 border-t border-warm-gray/15 pt-3">

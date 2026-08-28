@@ -30,10 +30,12 @@ export default function BottomNavigation({
   navLocked,
 }: BottomNavigationProps) {
   return (
-    <nav className="flex w-full items-center justify-around border-t border-peach/40 bg-cream/95 py-2">
+    <nav className="flex w-full items-center justify-around border-t border-warm-gray/15 bg-white py-2">
       {navItems.map((item) => {
         const isActive = item.tab === activeTab;
         const isEnabled = item.tab !== undefined && !navLocked;
+        // 아직 안 만든 탭(공부 / 다온이)은 눌리는 것처럼 보이지 않게 더 흐리게.
+        const isPlaceholder = item.tab === undefined;
 
         return (
           <button
@@ -42,13 +44,21 @@ export default function BottomNavigation({
             disabled={!isEnabled}
             aria-current={isActive ? "page" : undefined}
             onClick={item.tab ? () => onTabChange(item.tab!) : undefined}
-            className={`flex flex-col items-center gap-0.5 rounded-xl px-3 py-1 text-xs transition-colors ${
+            className={`relative flex flex-col items-center gap-0.5 rounded-xl px-3 pb-1 pt-2 text-[11px] transition-colors ${
               isActive
-                ? "bg-lavender/60 font-semibold text-cocoa"
-                : "text-warm-gray/70"
+                ? "font-semibold text-cocoa"
+                : isPlaceholder
+                  ? "text-warm-gray/40"
+                  : "text-warm-gray"
             } ${isEnabled && !isActive ? "hover:text-cocoa" : ""}`}
           >
-            <span className="text-lg leading-none">{item.icon}</span>
+            <span
+              aria-hidden
+              className={`absolute top-0 h-1 w-1 rounded-full ${
+                isActive ? "bg-lavender-deep" : "bg-transparent"
+              }`}
+            />
+            <span className="text-base leading-none">{item.icon}</span>
             {item.label}
           </button>
         );

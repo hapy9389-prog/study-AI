@@ -23,7 +23,7 @@ interface RoomSceneProps {
 export default function RoomScene({ stage, character }: RoomSceneProps) {
   return (
     <div
-      className={`relative mt-3 h-44 w-full overflow-hidden rounded-2xl ${
+      className={`relative mt-3 h-44 w-full overflow-hidden rounded-2xl border border-warm-gray/12 ${
         stage >= 3 ? "bg-peach/25" : "bg-cream"
       }`}
     >

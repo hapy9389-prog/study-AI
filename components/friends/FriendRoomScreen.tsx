@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import RoomScene from "@/components/room/RoomScene";
 import FriendCharacter from "@/components/social/FriendCharacter";
+import ScreenShell from "@/components/layout/ScreenShell";
 import { formatTotalStudyTime } from "@/lib/mockData";
 import type { FriendRoomProfile, FriendStudyStatus } from "@/lib/types";
 
@@ -59,46 +60,36 @@ export default function FriendRoomScreen({
   }, []);
 
   return (
-    <div className="flex min-h-screen w-full justify-center bg-warm-gray/10">
-      <div className="flex min-h-screen w-full max-w-[430px] flex-col bg-cream px-6 py-8 shadow-xl">
-        <button
-          type="button"
-          onClick={onBack}
-          className="self-start rounded-full px-2 py-1 text-sm text-warm-gray transition-colors hover:text-cocoa"
-        >
-          ← 돌아가기
-        </button>
-
-        <h1 className="mt-2 text-xl font-semibold text-cocoa">
-          {friend.nickname}의 방
-        </h1>
-
-        <RoomScene
-          stage={roomProfile.roomStage}
-          character={
-            <div className="absolute bottom-3 left-1/2 origin-bottom -translate-x-1/2 scale-[1.4]">
-              <FriendCharacter avatarId={friend.avatarId} status={friend.status} />
-            </div>
-          }
-        />
-
-        <p className="mt-4 text-sm text-cocoa">{statusLine(friend, now)}</p>
-
-        <dl className="mt-3 flex flex-col gap-2">
-          <div className="flex items-center justify-between rounded-2xl bg-white px-4 py-3 shadow-sm">
-            <dt className="text-xs text-warm-gray">오늘 공부</dt>
-            <dd className="text-sm font-medium text-cocoa">
-              {friend.todayStudyMinutes}분
-            </dd>
+    <ScreenShell
+      onBack={onBack}
+      title={`${friend.nickname}의 방`}
+      subtitle="구경하는 공간이에요"
+    >
+      <RoomScene
+        stage={roomProfile.roomStage}
+        character={
+          <div className="absolute bottom-3 left-1/2 origin-bottom -translate-x-1/2 scale-[1.4]">
+            <FriendCharacter avatarId={friend.avatarId} status={friend.status} />
           </div>
-          <div className="flex items-center justify-between rounded-2xl bg-white px-4 py-3 shadow-sm">
-            <dt className="text-xs text-warm-gray">지금까지 공부</dt>
-            <dd className="text-sm font-medium text-cocoa">
-              {formatTotalStudyTime(roomProfile.totalStudyMinutes)}
-            </dd>
-          </div>
-        </dl>
-      </div>
-    </div>
+        }
+      />
+
+      <p className="text-sm text-cocoa">{statusLine(friend, now)}</p>
+
+      <dl className="flex flex-col gap-2">
+        <div className="stat-row">
+          <dt className="text-xs text-warm-gray">오늘 공부</dt>
+          <dd className="text-sm font-medium text-cocoa">
+            {friend.todayStudyMinutes}분
+          </dd>
+        </div>
+        <div className="stat-row">
+          <dt className="text-xs text-warm-gray">지금까지 공부</dt>
+          <dd className="text-sm font-medium text-cocoa">
+            {formatTotalStudyTime(roomProfile.totalStudyMinutes)}
+          </dd>
+        </div>
+      </dl>
+    </ScreenShell>
   );
 }

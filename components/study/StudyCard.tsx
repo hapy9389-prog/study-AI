@@ -69,7 +69,7 @@ export default function StudyCard({
   };
 
   return (
-    <section className="mx-6 rounded-3xl bg-white p-5 shadow-sm">
+    <section className="card mx-6">
       {phase === "idle" && (
         <>
           <p className="text-xs font-medium text-warm-gray">오늘 뭐 공부할까?</p>
@@ -78,28 +78,28 @@ export default function StudyCard({
             value={subject}
             onChange={(e) => setSubject(e.target.value)}
             placeholder="예: 영어 회화, 미분, SQLD"
-            className="mt-2 w-full rounded-2xl border border-peach/60 bg-cream px-4 py-3 text-sm text-cocoa outline-none focus:border-lavender-deep"
+            className="field mt-2"
           />
 
           <p className="mt-4 text-xs font-medium text-warm-gray">목표 시간</p>
           <div className="mt-2 flex flex-wrap items-center gap-2">
-            {QUICK_MINUTES.map((minutes) => (
-              <button
-                key={minutes}
-                type="button"
-                onClick={() => {
-                  setTargetMinutes(minutes);
-                  setCustomMinutes("");
-                }}
-                className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
-                  targetMinutes === minutes && customMinutes.trim() === ""
-                    ? "bg-lavender-deep text-white"
-                    : "bg-lavender text-cocoa"
-                }`}
-              >
-                {minutes}분
-              </button>
-            ))}
+            {QUICK_MINUTES.map((minutes) => {
+              const selected =
+                targetMinutes === minutes && customMinutes.trim() === "";
+              return (
+                <button
+                  key={minutes}
+                  type="button"
+                  onClick={() => {
+                    setTargetMinutes(minutes);
+                    setCustomMinutes("");
+                  }}
+                  className={selected ? "chip-active" : "chip"}
+                >
+                  {minutes}분
+                </button>
+              );
+            })}
             <input
               type="number"
               inputMode="numeric"
@@ -110,7 +110,7 @@ export default function StudyCard({
                 setTargetMinutes(null);
               }}
               placeholder="직접 입력"
-              className="w-20 rounded-xl border border-peach/60 bg-cream px-3 py-2 text-sm text-cocoa outline-none focus:border-lavender-deep"
+              className="w-24 rounded-2xl border border-peach/60 bg-cream px-3 py-2 text-sm text-cocoa outline-none transition-colors focus:border-lavender-deep"
             />
           </div>
 
@@ -118,7 +118,7 @@ export default function StudyCard({
             type="button"
             disabled={!isFormValid}
             onClick={handleStart}
-            className="mt-4 w-full rounded-2xl bg-lavender-deep py-4 text-lg font-bold text-white shadow-lg transition-transform hover:scale-[1.02] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100"
+            className="btn-primary mt-4"
           >
             공부 시작
           </button>
@@ -127,20 +127,14 @@ export default function StudyCard({
 
       {phase === "studying" && studySession && (
         <div className="flex flex-col items-center gap-3">
-          <p className="text-base font-bold text-cocoa">{studySession.subject} 공부 중</p>
-          <p className="font-mono text-5xl font-bold tabular-nums text-lavender-deep">
+          <p className="text-base font-semibold text-cocoa">
+            {studySession.subject} 공부 중
+          </p>
+          <p className="font-mono text-5xl font-bold tabular-nums text-cocoa">
             {formatClock(liveElapsedSeconds)}
           </p>
-          <p className="text-sm text-warm-gray">목표 {studySession.targetMinutes}분</p>
-          <p className="flex items-center gap-2 text-sm text-warm-gray">
-            <span className="h-2 w-2 animate-pulse rounded-full bg-peach-deep" />
-            다온이는 조용히 함께 있어요
-          </p>
-          <button
-            type="button"
-            onClick={onCompleteStudy}
-            className="w-full rounded-2xl bg-peach py-3 text-base font-semibold text-cocoa transition-colors hover:bg-peach-deep"
-          >
+          <p className="text-xs text-warm-gray">목표 {studySession.targetMinutes}분</p>
+          <button type="button" onClick={onCompleteStudy} className="btn-primary">
             공부 완료
           </button>
 

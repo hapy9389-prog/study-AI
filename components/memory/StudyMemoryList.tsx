@@ -25,21 +25,18 @@ export default function StudyMemoryList() {
   return (
     <section className="mx-6 flex flex-col gap-3">
       <header>
-        <h2 className="text-base font-semibold text-cocoa">기억</h2>
+        <h2 className="text-xl font-semibold text-cocoa">기억</h2>
         <p className="mt-0.5 text-xs text-warm-gray">최근 공부</p>
       </header>
 
       {records.length === 0 ? (
-        <p className="rounded-3xl bg-white px-4 py-6 text-center text-sm text-warm-gray shadow-sm">
+        <p className="card text-center text-sm text-warm-gray">
           아직 같이 공부한 기억이 없어요.
         </p>
       ) : (
         <ul className="flex flex-col gap-3">
           {records.map((record) => (
-            <li
-              key={record.id}
-              className="rounded-3xl bg-white p-4 shadow-sm"
-            >
+            <li key={record.id} className="card">
               <div className="flex items-baseline justify-between gap-3">
                 <span className="text-sm font-semibold text-cocoa">
                   {record.subject}
@@ -54,7 +51,7 @@ export default function StudyMemoryList() {
                 {feelingLabel(record.feelingId)}
               </p>
 
-              <div className="mt-3 rounded-2xl bg-lavender/50 px-3 py-2 text-sm text-cocoa">
+              <div className="daon-bubble mt-3">
                 <span className="mr-1 text-xs font-medium text-lavender-deep">
                   다온
                 </span>

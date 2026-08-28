@@ -1,5 +1,6 @@
 import RoomScene from "@/components/room/RoomScene";
 import { MyRoomCharacter } from "@/components/room/MyRoom";
+import ScreenShell from "@/components/layout/ScreenShell";
 import { formatTotalStudyTime } from "@/lib/mockData";
 import type { CharacterAccessoryId, StudyRewardState } from "@/lib/types";
 
@@ -23,45 +24,32 @@ export default function MyRoomScreen({
   onBack,
 }: MyRoomScreenProps) {
   return (
-    <div className="flex min-h-screen w-full justify-center bg-warm-gray/10">
-      <div className="flex min-h-screen w-full max-w-[430px] flex-col bg-cream px-6 py-8 shadow-xl">
-        <button
-          type="button"
-          onClick={onBack}
-          className="self-start rounded-full px-2 py-1 text-sm text-warm-gray transition-colors hover:text-cocoa"
-        >
-          ← 돌아가기
-        </button>
+    <ScreenShell
+      onBack={onBack}
+      title="내 공간"
+      subtitle="친구에게는 이렇게 보여요 · 공부한 만큼 방과 다온이가 자라요"
+    >
+      <RoomScene
+        stage={rewardState.roomStage}
+        character={<MyRoomCharacter equippedAccessoryId={equippedAccessoryId} />}
+      />
 
-        <h1 className="mt-2 text-xl font-semibold text-cocoa">내 공간</h1>
-        <p className="mt-1 text-xs text-warm-gray">
-          친구에게는 이렇게 보여요 · 공부한 만큼 방과 다온이가 자라요
-        </p>
-
-        <RoomScene
-          stage={rewardState.roomStage}
-          character={
-            <MyRoomCharacter equippedAccessoryId={equippedAccessoryId} />
-          }
-        />
-
-        <dl className="mt-4 flex flex-col gap-2">
-          {todayStudyMinutes !== null && (
-            <div className="flex items-center justify-between rounded-2xl bg-white px-4 py-3 shadow-sm">
-              <dt className="text-xs text-warm-gray">오늘 공부</dt>
-              <dd className="text-sm font-medium text-cocoa">
-                {todayStudyMinutes}분
-              </dd>
-            </div>
-          )}
-          <div className="flex items-center justify-between rounded-2xl bg-white px-4 py-3 shadow-sm">
-            <dt className="text-xs text-warm-gray">지금까지 공부</dt>
+      <dl className="flex flex-col gap-2">
+        {todayStudyMinutes !== null && (
+          <div className="stat-row">
+            <dt className="text-xs text-warm-gray">오늘 공부</dt>
             <dd className="text-sm font-medium text-cocoa">
-              {formatTotalStudyTime(rewardState.totalStudyMinutes)}
+              {todayStudyMinutes}분
             </dd>
           </div>
-        </dl>
-      </div>
-    </div>
+        )}
+        <div className="stat-row">
+          <dt className="text-xs text-warm-gray">지금까지 함께 공부한 시간</dt>
+          <dd className="text-sm font-medium text-cocoa">
+            {formatTotalStudyTime(rewardState.totalStudyMinutes)}
+          </dd>
+        </div>
+      </dl>
+    </ScreenShell>
   );
 }

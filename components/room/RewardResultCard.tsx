@@ -20,16 +20,14 @@ export default function RewardResultCard({ reward }: RewardResultCardProps) {
   const unlockMessage = stageChanged ? STAGE_UNLOCK_MESSAGE[reward.roomStage] : "";
 
   return (
-    <section className="mx-6 rounded-3xl bg-white p-4 shadow-sm">
-      <p className="text-base font-semibold text-cocoa">
-        +{reward.earnedCoins} coin
-      </p>
+    <section className="card mx-6">
+      <p className="text-lg font-semibold text-cocoa">+{reward.earnedCoins} 코인</p>
       <p className="mt-1 text-xs text-warm-gray">
         {reward.earnedMinutes}분 공부
         {reward.goalBonus > 0 && " · 목표 달성 보너스 +10"}
       </p>
       {unlockMessage && (
-        <p className="mt-2 rounded-2xl bg-mint/50 px-3 py-2 text-xs font-medium text-cocoa">
+        <p className="milestone mt-2 text-xs font-medium text-cocoa">
           {unlockMessage}
         </p>
       )}

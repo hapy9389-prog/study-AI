@@ -1,17 +1,16 @@
-import { memoryResult, reactionData, formatMinutesAndSeconds, buildGoalMessage } from "@/lib/mockData";
+import { reactionData, formatMinutesAndSeconds, buildGoalMessage } from "@/lib/mockData";
 import type { FeelingChoice, StudySession } from "@/lib/types";
 
 interface StudyRecordSummaryProps {
   studySession: StudySession;
   feelingId: FeelingChoice["id"];
-  // /api/reaction 이 생성한 다온의 한마디. 없으면 Mock responseLines fallback.
-  aiReaction?: string;
 }
 
+// 다온의 한마디는 위 StudyMemoryCard 말풍선에 이미 나온다 — 여기서는 사실 기록만
+// 보여주고 중복하지 않는다(문장 자체는 StudyRecord 에 그대로 저장된다).
 export default function StudyRecordSummary({
   studySession,
   feelingId,
-  aiReaction,
 }: StudyRecordSummaryProps) {
   const feelingLabel =
     reactionData.choices.find((choice) => choice.id === feelingId)?.label ?? "";
@@ -25,11 +24,10 @@ export default function StudyRecordSummary({
     { label: "목표 공부 시간", value: `${studySession.targetMinutes}분` },
     { label: "실제 공부 시간", value: formatMinutesAndSeconds(elapsedSeconds) },
     { label: "오늘의 감상", value: feelingLabel },
-    { label: "다온이의 한마디", value: aiReaction ?? memoryResult.responseLines[feelingId] },
   ];
 
   return (
-    <section className="mx-6 rounded-3xl bg-white p-5 shadow-sm">
+    <section className="card mx-6">
       <h3 className="text-sm font-semibold text-cocoa">오늘의 학습 기록</h3>
       <dl className="mt-3 flex flex-col gap-2">
         {rows.map((row) => (
@@ -39,7 +37,7 @@ export default function StudyRecordSummary({
           </div>
         ))}
       </dl>
-      <p className="mt-3 rounded-2xl bg-mint/60 px-4 py-2 text-center text-sm font-medium text-cocoa">
+      <p className="milestone mt-3 text-center text-sm font-medium text-cocoa">
         {goalMessage}
       </p>
     </section>

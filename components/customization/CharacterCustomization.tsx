@@ -1,4 +1,5 @@
 import CharacterFace from "@/components/character/CharacterFace";
+import ScreenShell from "@/components/layout/ScreenShell";
 import { CHARACTER_ACCESSORIES } from "@/lib/characterCustomization";
 import type {
   CharacterAccessoryId,
@@ -66,91 +67,83 @@ export default function CharacterCustomization({
   const { ownedAccessoryIds, equippedAccessoryId } = customization;
 
   return (
-    <div className="flex min-h-screen w-full justify-center bg-warm-gray/10">
-      <div className="flex min-h-screen w-full max-w-[430px] flex-col bg-cream px-6 py-8 shadow-xl">
-        <button
-          type="button"
-          onClick={onBack}
-          className="self-start rounded-full px-2 py-1 text-sm text-warm-gray transition-colors hover:text-cocoa"
-        >
-          ← 돌아가기
-        </button>
-
-        <h1 className="mt-2 text-xl font-semibold text-cocoa">다온 꾸미기</h1>
-
-        <div className="mt-5 flex justify-center">
-          <CharacterFace
-            expression="happy"
-            accessoryId={equippedAccessoryId}
-          />
-        </div>
-
-        <p className="mt-5 text-sm font-medium text-cocoa">
-          보유 코인 {coins}
-        </p>
-
-        <ul className="mt-3 flex flex-col gap-2">
-          {CHARACTER_ACCESSORIES.map((accessory) => {
-            const owned = ownedAccessoryIds.includes(accessory.id);
-            const equipped = equippedAccessoryId === accessory.id;
-            const affordable = coins >= accessory.price;
-
-            return (
-              <li
-                key={accessory.id}
-                className="flex items-center gap-3 rounded-2xl bg-white px-3 py-3 shadow-sm"
-              >
-                <AccessoryPreview id={accessory.id} />
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-cocoa">
-                    {accessory.name}
-                  </p>
-                  <p className="text-xs text-warm-gray">
-                    {accessory.price} coin
-                  </p>
-                </div>
-
-                {!owned && affordable && (
-                  <button
-                    type="button"
-                    onClick={() => onPurchase(accessory.id)}
-                    className="shrink-0 rounded-full bg-peach px-4 py-2 text-xs font-medium text-cocoa transition-colors hover:bg-peach-deep"
-                  >
-                    구매
-                  </button>
-                )}
-                {!owned && !affordable && (
-                  <button
-                    type="button"
-                    disabled
-                    className="shrink-0 rounded-full bg-warm-gray/15 px-4 py-2 text-xs font-medium text-warm-gray"
-                  >
-                    코인 부족
-                  </button>
-                )}
-                {owned && !equipped && (
-                  <button
-                    type="button"
-                    onClick={() => onEquip(accessory.id)}
-                    className="shrink-0 rounded-full bg-lavender px-4 py-2 text-xs font-medium text-cocoa transition-colors hover:bg-lavender-deep hover:text-white"
-                  >
-                    장착
-                  </button>
-                )}
-                {owned && equipped && (
-                  <button
-                    type="button"
-                    onClick={onUnequip}
-                    className="shrink-0 rounded-full bg-lavender-deep px-4 py-2 text-xs font-medium text-white transition-colors hover:bg-cocoa"
-                  >
-                    장착 해제
-                  </button>
-                )}
-              </li>
-            );
-          })}
-        </ul>
+    <ScreenShell onBack={onBack} title="다온 꾸미기">
+      <div className="card flex flex-col items-center gap-4 py-6">
+        <CharacterFace expression="happy" accessoryId={equippedAccessoryId} />
+        <p className="text-sm font-medium text-cocoa">보유 코인 {coins}</p>
       </div>
-    </div>
+
+      <ul className="flex flex-col gap-2">
+        {CHARACTER_ACCESSORIES.map((accessory) => {
+          const owned = ownedAccessoryIds.includes(accessory.id);
+          const equipped = equippedAccessoryId === accessory.id;
+          const affordable = coins >= accessory.price;
+
+          const statusText = equipped
+            ? "장착 중"
+            : owned
+              ? "보유 중"
+              : `${accessory.price} 코인`;
+
+          return (
+            <li
+              key={accessory.id}
+              className={`flex items-center gap-3 rounded-2xl bg-white px-3 py-3 shadow-sm ${
+                equipped ? "ring-1 ring-lavender-deep" : ""
+              }`}
+            >
+              <AccessoryPreview id={accessory.id} />
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium text-cocoa">{accessory.name}</p>
+                <p
+                  className={`text-xs ${
+                    equipped ? "text-lavender-deep" : "text-warm-gray"
+                  }`}
+                >
+                  {statusText}
+                </p>
+              </div>
+
+              {!owned && affordable && (
+                <button
+                  type="button"
+                  onClick={() => onPurchase(accessory.id)}
+                  className="shrink-0 rounded-full bg-peach-deep px-4 py-2.5 text-sm font-medium text-cocoa transition hover:brightness-95"
+                >
+                  구매
+                </button>
+              )}
+              {!owned && !affordable && (
+                <button
+                  type="button"
+                  disabled
+                  className="shrink-0 rounded-full bg-warm-gray/15 px-4 py-2.5 text-sm font-medium text-warm-gray"
+                >
+                  코인 부족
+                </button>
+              )}
+              {owned && !equipped && (
+                <button
+                  type="button"
+                  onClick={() => onEquip(accessory.id)}
+                  className="shrink-0 rounded-full border border-lavender-deep bg-white px-4 py-2.5 text-sm font-medium text-cocoa transition-colors hover:bg-lavender/40"
+                >
+                  장착
+                </button>
+              )}
+              {owned && equipped && (
+                <button
+                  type="button"
+                  onClick={onUnequip}
+                  className="shrink-0 rounded-full bg-lavender-deep px-4 py-2.5 text-sm font-medium text-cocoa transition hover:brightness-95"
+                >
+                  장착 해제
+                </button>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+    </ScreenShell>
   );
 }

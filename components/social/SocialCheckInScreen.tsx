@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import FriendCharacter from "./FriendCharacter";
+import ScreenShell from "@/components/layout/ScreenShell";
 import type { FriendStudyStatus } from "@/lib/types";
 
 interface SocialCheckInScreenProps {
@@ -64,43 +65,37 @@ export default function SocialCheckInScreen({
       : "지금은 다들 잠깐 쉬고 있나 봐요";
 
   return (
-    <div className="flex min-h-screen w-full justify-center bg-warm-gray/10">
-      <div className="flex min-h-screen w-full max-w-[430px] flex-col bg-cream px-6 py-8 shadow-xl">
-        <div className="flex flex-1 flex-col">
-          <p className="text-xs font-medium text-warm-gray">친구들은 지금</p>
-          <h1 className="mt-1 text-xl font-semibold text-cocoa">{summary}</h1>
-
-          <ul className="mt-6 flex flex-col gap-2">
-            {friends.map((friend) => (
-              <li
-                key={friend.id}
-                className="flex items-center gap-3 rounded-2xl bg-white px-3 py-2 shadow-sm"
-              >
-                <FriendCharacter
-                  avatarId={friend.avatarId}
-                  status={friend.status}
-                />
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-cocoa">
-                    {friend.nickname}
-                  </p>
-                  <p className="truncate text-xs text-warm-gray">
-                    {statusLine(friend, now)}
-                  </p>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        <button
-          type="button"
-          onClick={onContinue}
-          className="mt-6 rounded-full bg-peach px-4 py-3 text-sm font-medium text-cocoa transition-colors hover:bg-peach-deep"
-        >
+    <ScreenShell
+      eyebrow="친구들은 지금"
+      title={summary}
+      footer={
+        <button type="button" onClick={onContinue} className="btn-primary">
           나도 공부할래
         </button>
-      </div>
-    </div>
+      }
+    >
+      <ul className="flex flex-col gap-2">
+        {friends.map((friend) => (
+          <li
+            key={friend.id}
+            className="flex items-center gap-3 rounded-2xl bg-white px-3 py-2.5 shadow-sm"
+          >
+            <FriendCharacter avatarId={friend.avatarId} status={friend.status} />
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium text-cocoa">{friend.nickname}</p>
+              <p className="truncate text-xs text-warm-gray">
+                {statusLine(friend, now)}
+              </p>
+            </div>
+            {friend.status === "studying" && (
+              <span
+                aria-hidden
+                className="mr-1 h-1.5 w-1.5 shrink-0 rounded-full bg-mint"
+              />
+            )}
+          </li>
+        ))}
+      </ul>
+    </ScreenShell>
   );
 }

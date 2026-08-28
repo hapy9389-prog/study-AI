@@ -25,14 +25,14 @@ export default function FriendRoomsSection({
   onVisit,
 }: FriendRoomsSectionProps) {
   return (
-    <section className="mx-6 rounded-3xl bg-white p-5 shadow-sm">
+    <section className="mx-6 flex flex-col gap-2">
       <p className="text-xs font-medium text-warm-gray">친구 공간</p>
 
-      <ul className="mt-3 flex flex-col gap-2">
+      <ul className="flex flex-col gap-2">
         {friends.map((friend) => (
           <li
             key={friend.id}
-            className="flex items-center gap-3 rounded-2xl bg-warm-gray/5 px-3 py-2"
+            className="flex items-center gap-3 rounded-2xl bg-white px-3 py-2.5 shadow-sm"
           >
             <div className="scale-90">
               <FriendCharacter
@@ -49,7 +49,7 @@ export default function FriendRoomsSection({
             <button
               type="button"
               onClick={() => onVisit(friend.id)}
-              className="shrink-0 rounded-full bg-lavender px-3 py-1.5 text-xs font-medium text-cocoa transition-colors hover:bg-lavender-deep hover:text-white"
+              className="shrink-0 rounded-full border border-lavender-deep bg-white px-3 py-1.5 text-xs font-medium text-cocoa transition-colors hover:bg-lavender/40"
             >
               방 보러 가기
             </button>

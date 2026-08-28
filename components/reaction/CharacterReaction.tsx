@@ -219,8 +219,8 @@ export default function CharacterReaction({ studySession, onSelectFeeling }: Cha
   };
 
   const loadingView = (text: string) => (
-    <section className="mx-6 rounded-3xl bg-white p-5 shadow-sm">
-      <p className="flex items-center justify-center gap-2 py-4 text-sm text-warm-gray">
+    <section className="card mx-6 flex min-h-[168px] items-center justify-center">
+      <p className="flex items-center gap-2 text-sm text-warm-gray">
         <span className="h-2 w-2 animate-pulse rounded-full bg-lavender-deep" />
         {text}
       </p>
@@ -239,15 +239,13 @@ export default function CharacterReaction({ studySession, onSelectFeeling }: Cha
     ) : null;
 
   // reflection · followup 단계의 답변 입력 UI (동일 형태). onClick 핸들러만 다르다.
-  const answerFieldClass =
-    "mt-3 w-full resize-none rounded-2xl border border-peach/60 bg-cream px-4 py-3 text-sm text-cocoa outline-none focus:border-lavender-deep";
-  const submitButtonClass =
-    "mt-3 w-full rounded-2xl bg-lavender-deep py-3 text-sm font-semibold text-white transition-transform hover:scale-[1.02] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100";
+  const answerFieldClass = "field mt-3 resize-none";
+  const submitButtonClass = "btn-primary mt-3";
 
   if (step === "feeling") {
     return (
-      <section className="mx-6 rounded-3xl bg-white p-5 shadow-sm">
-        <div className="rounded-2xl bg-lavender/50 px-4 py-3 text-sm text-cocoa">{characterLine}</div>
+      <section className="card mx-6 min-h-[168px]">
+        <div className="daon-bubble">{characterLine}</div>
 
         <div className="mt-4 flex flex-wrap gap-2">
           {reactionData.choices.map((choice) => (
@@ -256,7 +254,7 @@ export default function CharacterReaction({ studySession, onSelectFeeling }: Cha
               type="button"
               disabled={isLoading}
               onClick={() => handleSelectFeeling(choice.id)}
-              className="rounded-full bg-peach px-4 py-2 text-sm font-medium text-cocoa transition-colors hover:bg-peach-deep disabled:opacity-50"
+              className="chip disabled:opacity-50"
             >
               {choice.label}
             </button>
@@ -270,8 +268,8 @@ export default function CharacterReaction({ studySession, onSelectFeeling }: Cha
     if (isLoading) return loadingView("다온이가 오늘 공부를 돌아보고 있어요...");
 
     return (
-      <section className="mx-6 rounded-3xl bg-white p-5 shadow-sm">
-        <div className="rounded-2xl bg-lavender/50 px-4 py-3 text-sm text-cocoa">{question}</div>
+      <section className="card mx-6 min-h-[168px]">
+        <div className="daon-bubble">{question}</div>
         <textarea
           value={answer}
           onChange={(e) => setAnswer(e.target.value)}
@@ -296,10 +294,8 @@ export default function CharacterReaction({ studySession, onSelectFeeling }: Cha
     if (isLoading) return loadingView("다온이가 오늘 공부를 떠올리고 있어요...");
 
     return (
-      <section className="mx-6 rounded-3xl bg-white p-5 shadow-sm">
-        <div className="rounded-2xl bg-lavender/50 px-4 py-3 text-sm text-cocoa">
-          {followUpQuestion}
-        </div>
+      <section className="card mx-6 min-h-[168px]">
+        <div className="daon-bubble">{followUpQuestion}</div>
         <textarea
           value={answer}
           onChange={(e) => setAnswer(e.target.value)}
@@ -325,14 +321,14 @@ export default function CharacterReaction({ studySession, onSelectFeeling }: Cha
   if (isLoading) return loadingView("다온이가 오늘 공부를 떠올리고 있어요...");
 
   return (
-    <section className="mx-6 rounded-3xl bg-white p-5 shadow-sm">
-      <div className="rounded-2xl bg-lavender/50 px-4 py-3 text-sm text-cocoa">{closingLine}</div>
+    <section className="card mx-6 min-h-[168px]">
+      <div className="daon-bubble">{closingLine}</div>
 
       <button
         type="button"
         disabled={isFinishing}
         onClick={handleFinish}
-        className="mt-4 w-full rounded-2xl bg-peach py-3 text-sm font-semibold text-cocoa transition-colors hover:bg-peach-deep disabled:opacity-50"
+        className="btn-primary mt-4"
       >
         오늘 공부 마무리
       </button>
