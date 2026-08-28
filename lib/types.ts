@@ -83,6 +83,35 @@ export interface CharacterGrowthState {
   interests: CharacterInterest[];
 }
 
+// 공부 완료로 누적되는 장기 보상. StudyRecord("무슨 공부를 했나") ·
+// CharacterGrowthState("몇 번 함께했나")와 별도 저장소다 — 이쪽은 "공부한 만큼
+// 쌓이는 코인/누적시간/방 단계"만 본다. 벌점·퇴화·streak 없음(공부한 만큼 누적).
+export type RoomStage = 1 | 2 | 3;
+
+export interface StudyRewardState {
+  coins: number;
+  totalStudyMinutes: number;
+  roomStage: RoomStage;
+}
+
+// calculateStudyReward() 결과 — 이번 세션 1건의 보상 계산값(누적 아님).
+export interface StudyRewardCalculation {
+  /** 실제 공부 분 = Math.floor(elapsedSeconds / 60) */
+  baseCoins: number;
+  /** 목표 시간 달성 시 +10, 아니면 0 */
+  goalBonus: number;
+  /** baseCoins + goalBonus */
+  earnedCoins: number;
+  /** 누적 totalStudyMinutes에 더해질 분 */
+  earnedMinutes: number;
+}
+
+// done 화면 보상 카드에 넘기는 이번 세션 결과 — 계산값 + 방 단계 변화.
+export interface StudyRewardResult extends StudyRewardCalculation {
+  previousRoomStage: RoomStage;
+  roomStage: RoomStage;
+}
+
 // 회고 답변에 이번 공부 주제와 관련된 내용의 흔적이 얼마나 드러나는지에 대한
 // 내부 분류. "정답 여부"나 "실제로 공부했는지"를 인증하는 값이 아니다 —
 // clear 도 "공부했음이 확인됨"이 아니라 "답변에 구체적 흔적이 있음"일 뿐이다.
@@ -126,12 +155,20 @@ export interface AppState {
   // 감상 선택 후 /api/reaction 이 생성한 다온의 한마디. API 실패 시 undefined로
   // 남고, 화면에서는 mockData.responseLines fallback을 쓴다.
   aiReaction?: string;
+  // 이번 세션 완료로 지급된 보상(코인/누적시간/방 단계 변화). done 화면 보상
+  // 카드용. 완료 처리가 1회 가드를 통과한 경우에만 채워진다.
+  reward?: StudyRewardResult;
 }
 
 export type Action =
   | { type: "START_STUDY"; studySession: StudySession }
   | { type: "COMPLETE_STUDY" }
-  | { type: "SELECT_FEELING"; feelingId: FeelingChoice["id"]; aiReaction?: string }
+  | {
+      type: "SELECT_FEELING";
+      feelingId: FeelingChoice["id"];
+      aiReaction?: string;
+      reward?: StudyRewardResult;
+    }
   // done 화면에서 "새 공부 시작하기" — 처음 상태로 되돌린다.
   | { type: "RESET" }
   // 개발 전용 — startedAt을 과거로 옮겨 경과 시간을 시뮬레이션한다.

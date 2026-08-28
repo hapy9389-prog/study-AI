@@ -64,6 +64,17 @@ export function formatTogetherMinutes(elapsedSeconds: number): string {
   return elapsedSeconds < 60 ? "잠깐" : `${toMinutes(elapsedSeconds)}분`;
 }
 
+// 누적 공부시간(분)을 사람이 읽기 좋게. 60분 이상이면 "2시간 10분",
+// 미만이면 "40분", 0이면 "0분". My Room 에서 강조 없이 작게 보여준다.
+export function formatTotalStudyTime(totalMinutes: number): string {
+  const safeMinutes = Math.max(0, Math.floor(totalMinutes));
+  const hours = Math.floor(safeMinutes / 60);
+  const minutes = safeMinutes % 60;
+  if (hours === 0) return `${minutes}분`;
+  if (minutes === 0) return `${hours}시간`;
+  return `${hours}시간 ${minutes}분`;
+}
+
 // elapsedSeconds는 실제 측정 시간(Phase 3) — 목표(targetMinutes)가 아니다.
 // 대사에서는 분 단위로 버림해서 자연스럽게("N분 정도"), 60초 미만은 "잠깐"으로
 // 표현해 "0분 정도"처럼 어색하게 보이지 않게 한다. 정확한 초는 결과 화면

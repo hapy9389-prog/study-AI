@@ -11,6 +11,8 @@ import StudyMemoryList from "@/components/memory/StudyMemoryList";
 import StudyRecordSummary from "@/components/summary/StudyRecordSummary";
 import FriendStudySection from "@/components/friends/FriendStudySection";
 import ReflectionTestPanel from "@/components/study/ReflectionTestPanel";
+import MyRoom from "@/components/room/MyRoom";
+import RewardResultCard from "@/components/room/RewardResultCard";
 import { memoryResult } from "@/lib/mockData";
 import { createStudyRecord, saveStudyRecord } from "@/lib/studyRecords";
 import {
@@ -18,7 +20,18 @@ import {
   saveCharacterGrowth,
   updateCharacterGrowthAfterStudy,
 } from "@/lib/characterGrowth";
-import type { AppState, Action, FeelingChoice } from "@/lib/types";
+import {
+  calculateStudyReward,
+  loadStudyRewardState,
+  saveStudyRewardState,
+  updateStudyRewardAfterStudy,
+} from "@/lib/studyRewards";
+import type {
+  AppState,
+  Action,
+  FeelingChoice,
+  StudyRewardResult,
+} from "@/lib/types";
 
 const initialState: AppState = { phase: "idle" };
 
@@ -49,6 +62,7 @@ function reducer(state: AppState, action: Action): AppState {
         phase: "done",
         selectedFeelingId: action.feelingId,
         aiReaction: action.aiReaction,
+        reward: action.reward,
       };
     case "RESET":
       // done 화면 "새 공부 시작하기" — 처음 상태로. 저장된 기록은 그대로 유지된다.
@@ -99,6 +113,7 @@ export default function Home() {
     aiReaction?: string,
   ) => {
     const session = state.studySession;
+    let rewardResult: StudyRewardResult | undefined;
     if (session && !recordSavedRef.current) {
       recordSavedRef.current = true;
       // done 화면에서 실제로 보여줄 최종 문장. Claude 성공/실패 모두 이 값을 저장한다.
@@ -122,12 +137,24 @@ export default function Home() {
           record.completedAt,
         ),
       );
+      // StudyRecord / CharacterGrowth 와 같은 1회 가드 안에서 보상도 1회만
+      // 증가시킨다(별도 rewardSavedRef 없음). evidence 와 무관하게 계산된다.
+      const previousReward = loadStudyRewardState();
+      const rewardCalc = calculateStudyReward(session);
+      const nextReward = updateStudyRewardAfterStudy(previousReward, session);
+      saveStudyRewardState(nextReward);
+      rewardResult = {
+        ...rewardCalc,
+        previousRoomStage: previousReward.roomStage,
+        roomStage: nextReward.roomStage,
+      };
       if (process.env.NODE_ENV === "development") {
         // 내부 상태다 — 아직 UI에 표시하지 않으므로 개발 중 검증용으로만 찍는다.
         console.log("[growth]", loadCharacterGrowth());
+        console.log("[reward]", nextReward);
       }
     }
-    dispatch({ type: "SELECT_FEELING", feelingId, aiReaction });
+    dispatch({ type: "SELECT_FEELING", feelingId, aiReaction, reward: rewardResult });
   };
 
   return (
@@ -172,6 +199,10 @@ export default function Home() {
             />
           )}
 
+          {/* 내 방: 누적 공부로 발전하는 장기 보상 공간. idle 에서만, 공부 시작
+              CTA 보다 아래에 둔다 — 홈의 가장 큰 CTA 가 되면 안 된다. */}
+          {state.phase === "idle" && <MyRoom />}
+
           {state.phase === "reaction" && state.studySession && (
             <CharacterReaction
               studySession={state.studySession}
@@ -191,6 +222,7 @@ export default function Home() {
                 feelingId={state.selectedFeelingId}
                 aiReaction={state.aiReaction}
               />
+              {state.reward && <RewardResultCard reward={state.reward} />}
               <button
                 type="button"
                 onClick={() => {
