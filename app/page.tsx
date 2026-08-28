@@ -10,10 +10,12 @@ import StudyMemoryCard from "@/components/memory/StudyMemoryCard";
 import StudyMemoryList from "@/components/memory/StudyMemoryList";
 import StudyRecordSummary from "@/components/summary/StudyRecordSummary";
 import FriendStudySection from "@/components/friends/FriendStudySection";
+import SocialCheckInScreen from "@/components/social/SocialCheckInScreen";
 import ReflectionTestPanel from "@/components/study/ReflectionTestPanel";
 import MyRoom from "@/components/room/MyRoom";
 import RewardResultCard from "@/components/room/RewardResultCard";
 import { memoryResult } from "@/lib/mockData";
+import { getFriendStudyStatuses } from "@/lib/mockFriends";
 import { createStudyRecord, saveStudyRecord } from "@/lib/studyRecords";
 import {
   loadCharacterGrowth,
@@ -100,6 +102,13 @@ export default function Home() {
   const [state, dispatch] = useReducer(reducer, initialState);
   const [tab, setTab] = useState<NavTab>("home");
 
+  // 앱 첫 진입에서만 보여주는 Social Check-in 진입 화면. 순수 UI state 로,
+  // localStorage 에 저장하지 않는다 — 새로고침하면 다시 보여도 된다. 같은 세션
+  // 안에서는 reducer state 와 분리돼 있어 RESET 등으로 다시 나타나지 않는다.
+  const [showSocialCheckIn, setShowSocialCheckIn] = useState(true);
+  // startedAt 안정성을 위해 모듈 캐시된 Mock 친구 목록을 한 번만 읽는다.
+  const [friends] = useState(() => getFriendStudyStatuses());
+
   // 한 세션당 StudyRecord는 정확히 1개만 저장한다. 감상 선택은 이벤트 핸들러라
   // Strict Mode에서도 중복 실행되지 않지만, 연타/재진입 방어로 ref를 둔다.
   const recordSavedRef = useRef(false);
@@ -156,6 +165,15 @@ export default function Home() {
     }
     dispatch({ type: "SELECT_FEELING", feelingId, aiReaction, reward: rewardResult });
   };
+
+  if (showSocialCheckIn) {
+    return (
+      <SocialCheckInScreen
+        friends={friends}
+        onContinue={() => setShowSocialCheckIn(false)}
+      />
+    );
+  }
 
   return (
     <MobileLayout activeTab={activeTab} onTabChange={setTab} navLocked={navLocked}>

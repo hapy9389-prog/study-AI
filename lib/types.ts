@@ -124,12 +124,18 @@ export interface MemoryResult {
   responseLines: Record<FeelingChoice["id"], string>;
 }
 
-// 개발자 모드 데모 전용 Mock 친구 상태. 실제 친구/DB/Auth 아님(lib/mockFriends.ts).
+// Mock 친구 상태. 데이터는 데모용(실제 친구/DB/Auth 아님, lib/mockFriends.ts)이지만
+// 이 상태를 쓰는 Social Check-in 진입 화면은 production 에서도 렌더된다.
 export type FriendStudyStatusType = "studying" | "completed" | "idle";
+
+// 친구별 캐릭터 외형 식별자. 지금은 CSS 일러스트로 렌더하고, 나중에
+// avatarId → /characters/<id>.webp 같은 실제 이미지로 교체하기 쉽게 union 으로 둔다.
+export type FriendAvatarId = "minsu" | "seoyeon" | "jihun";
 
 export interface FriendStudyStatus {
   id: string;
   nickname: string;
+  avatarId: FriendAvatarId;
   status: FriendStudyStatusType;
   /** studying / completed 일 때 표시할 과목. idle 이면 없음. */
   subject?: string;

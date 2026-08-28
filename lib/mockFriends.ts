@@ -15,6 +15,7 @@ export function createMockFriendStatuses(now: number): FriendStudyStatus[] {
     {
       id: "friend-minsu",
       nickname: "민수",
+      avatarId: "minsu",
       status: "studying",
       subject: "미적분",
       startedAt: now - 34 * 60 * 1000, // 약 34분째
@@ -23,12 +24,14 @@ export function createMockFriendStatuses(now: number): FriendStudyStatus[] {
     {
       id: "friend-seoyeon",
       nickname: "서연",
+      avatarId: "seoyeon",
       status: "idle",
       todayStudyMinutes: 0,
     },
     {
       id: "friend-jihun",
       nickname: "지훈",
+      avatarId: "jihun",
       status: "completed",
       subject: "네트워크",
       todayStudyMinutes: 48,
