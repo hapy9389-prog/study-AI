@@ -77,3 +77,13 @@ export function buildReactionLine(subject: string, elapsedSeconds: number): stri
 export function buildMemoryLine(subject: string): string {
   return `오늘 공부한 주제: ${subject}`;
 }
+
+// 회고 대화(Phase 8) fallback 문구. /api/reflection · /api/reaction 이 실패해도
+// 흐름이 막히지 않도록 정적으로 준비해 둔다.
+export const FALLBACK_REFLECTION_QUESTION = "오늘 공부한 것 중에 제일 기억나는 건 뭐야?";
+
+// 마무리 반응 fallback. 완전히 일반적인 문장 대신 이번 공부 주제를 넣어
+// API 실패 상황에서도 오늘 공부와 연결되게 한다.
+export function buildFallbackClosingLine(subject: string): string {
+  return `오늘 ${subject} 이야기는 여기까지 같이 기억해둘게.`;
+}

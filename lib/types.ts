@@ -130,4 +130,7 @@ export type Action =
   | { type: "RESET" }
   // 개발 전용 — startedAt을 과거로 옮겨 경과 시간을 시뮬레이션한다.
   // production reducer에서는 무시된다(app/page.tsx).
-  | { type: "DEBUG_SET_ELAPSED"; elapsedSeconds: number };
+  | { type: "DEBUG_SET_ELAPSED"; elapsedSeconds: number }
+  // 개발 전용 — preset으로 만든 실제 StudySession으로 곧바로 reaction phase에
+  // 진입시킨다(회고 흐름 반복 테스트용). production reducer에서는 무시된다.
+  | { type: "DEBUG_ENTER_REACTION"; studySession: StudySession };

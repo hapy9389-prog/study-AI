@@ -10,6 +10,7 @@ import StudyMemoryCard from "@/components/memory/StudyMemoryCard";
 import StudyMemoryList from "@/components/memory/StudyMemoryList";
 import StudyRecordSummary from "@/components/summary/StudyRecordSummary";
 import FriendStudySection from "@/components/friends/FriendStudySection";
+import ReflectionTestPanel from "@/components/study/ReflectionTestPanel";
 import { memoryResult } from "@/lib/mockData";
 import { createStudyRecord, saveStudyRecord } from "@/lib/studyRecords";
 import {
@@ -63,6 +64,17 @@ function reducer(state: AppState, action: Action): AppState {
           ...state.studySession,
           startedAt: Date.now() - action.elapsedSeconds * 1000,
         },
+      };
+    }
+    case "DEBUG_ENTER_REACTION": {
+      // 개발 전용: preset으로 만든 StudySession으로 곧바로 reaction 진입.
+      // production에서는 아무 동작도 하지 않는다.
+      if (process.env.NODE_ENV !== "development") return state;
+      return {
+        phase: "reaction",
+        studySession: action.studySession,
+        selectedFeelingId: undefined,
+        aiReaction: undefined,
       };
     }
     default:
@@ -146,6 +158,18 @@ export default function Home() {
               reaction 에서는 아래 조건에 걸리지 않아 자동으로 숨겨진다. */}
           {process.env.NODE_ENV === "development" && state.phase === "idle" && (
             <FriendStudySection />
+          )}
+
+          {/* 개발자 모드 전용: 타이머를 거치지 않고 preset으로 바로 reaction(회고)
+              진입. idle에서만 노출되고, 클릭 즉시 phase가 바뀌며 사라진다 —
+              별도 lock 없이 이 구조 자체가 연타 방어다. */}
+          {process.env.NODE_ENV === "development" && state.phase === "idle" && (
+            <ReflectionTestPanel
+              onEnterReaction={(session) => {
+                recordSavedRef.current = false;
+                dispatch({ type: "DEBUG_ENTER_REACTION", studySession: session });
+              }}
+            />
           )}
 
           {state.phase === "reaction" && state.studySession && (

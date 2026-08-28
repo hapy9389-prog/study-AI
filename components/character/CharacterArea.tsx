@@ -1,4 +1,4 @@
-import CharacterFace from "./CharacterFace";
+import CharacterScene, { type SceneKind } from "./CharacterScene";
 import { moodBadges } from "@/lib/mockData";
 import type { Expression, ViewState } from "@/lib/types";
 
@@ -13,6 +13,14 @@ const expressionByPhase: Record<ViewState, Expression> = {
   done: "happy",
 };
 
+// phase → 장면. 공부 중에만 책상 장면, 나머지는 쉬는/대기 장면.
+const sceneByPhase: Record<ViewState, SceneKind> = {
+  idle: "resting",
+  studying: "studying",
+  reaction: "resting",
+  done: "resting",
+};
+
 // Core product rule: during `studying`, 다온 never speaks or throws an event —
 // only a static, calm "함께 있어요" label is shown. The reaction dialogue for
 // `reaction`/`done` lives in CharacterReaction/StudyMemoryCard, not here, so
@@ -20,7 +28,7 @@ const expressionByPhase: Record<ViewState, Expression> = {
 export default function CharacterArea({ phase }: CharacterAreaProps) {
   return (
     <section className="flex flex-col items-center gap-3 px-6">
-      <CharacterFace expression={expressionByPhase[phase]} />
+      <CharacterScene scene={sceneByPhase[phase]} expression={expressionByPhase[phase]} />
 
       {phase === "idle" && (
         <div className="max-w-[260px] rounded-2xl bg-white px-4 py-3 text-center text-sm shadow-sm">
