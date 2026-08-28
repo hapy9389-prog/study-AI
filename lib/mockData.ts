@@ -87,3 +87,7 @@ export const FALLBACK_REFLECTION_QUESTION = "오늘 공부한 것 중에 제일 
 export function buildFallbackClosingLine(subject: string): string {
   return `오늘 ${subject} 이야기는 여기까지 같이 기억해둘게.`;
 }
+
+// evidence가 partial/unclear인데 assessment가 추가 질문을 주지 않았을 때 쓰는
+// 정적 추가 질문. 시험 느낌 없이 짧고 부담 없게.
+export const FALLBACK_FOLLOWUP_QUESTION = "오늘 본 것 중에 이름이라도 기억나는 게 하나 있어?";

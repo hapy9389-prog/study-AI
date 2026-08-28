@@ -83,6 +83,12 @@ export interface CharacterGrowthState {
   interests: CharacterInterest[];
 }
 
+// 회고 답변에 이번 공부 주제와 관련된 내용의 흔적이 얼마나 드러나는지에 대한
+// 내부 분류. "정답 여부"나 "실제로 공부했는지"를 인증하는 값이 아니다 —
+// clear 도 "공부했음이 확인됨"이 아니라 "답변에 구체적 흔적이 있음"일 뿐이다.
+// production 사용자 UI에는 표시하지 않고, 영속 저장하지 않는다(세션 중에만).
+export type ReflectionEvidence = "clear" | "partial" | "unclear";
+
 export interface MemoryResult {
   memoryMessage: string;
   nextStudyNudge: string;

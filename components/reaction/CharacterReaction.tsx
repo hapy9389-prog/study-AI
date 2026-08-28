@@ -5,10 +5,11 @@ import {
   reactionData,
   buildReactionLine,
   FALLBACK_REFLECTION_QUESTION,
+  FALLBACK_FOLLOWUP_QUESTION,
   buildFallbackClosingLine,
 } from "@/lib/mockData";
 import { loadRecentMemories } from "@/lib/studyRecords";
-import type { FeelingChoice, StudySession } from "@/lib/types";
+import type { FeelingChoice, ReflectionEvidence, StudySession } from "@/lib/types";
 
 interface CharacterReactionProps {
   studySession: StudySession;
@@ -16,12 +17,15 @@ interface CharacterReactionProps {
 }
 
 // 공부 완료 후 reaction phase 안에서만 도는 짧은 회고 대화. 전역 ViewState 는
-// "reaction" 하나 그대로이고, 아래 세 단계는 이 컴포넌트 로컬 상태로만 관리한다.
-//   feeling     감상 칩 선택        → POST /api/reflection (질문 1개)
-//   reflection  질문 + 짧은 답변    → POST /api/reaction   (마무리 한마디)
-//   finishing   마무리 + [오늘 공부 마무리] → onSelectFeeling → done
-// 자유 채팅 아님. 질문은 정확히 1개. 검증/점수 UI 없음.
-type ReflectionStep = "feeling" | "reflection" | "finishing";
+// "reaction" 하나 그대로이고, 아래 단계는 이 컴포넌트 로컬 상태로만 관리한다.
+//   feeling     감상 칩 선택
+//   reflection  회고 질문 + 첫 답변 → /api/reflection-assessment 로 evidence 판단
+//                clear            → 바로 마무리
+//                partial/unclear  → followup 단계로
+//   followup    추가 질문 1개 + 답변 (판단 재실행 없음 — 질문은 최대 2개)
+//   finishing   /api/reaction 마무리 한마디 + [오늘 공부 마무리] → onSelectFeeling → done
+// 자유 채팅 아님. 질문 최대 2개. 사용자 화면에 evidence/점수/검증 표시 없음.
+type ReflectionStep = "feeling" | "reflection" | "followup" | "finishing";
 
 const ANSWER_MAX_LENGTH = 300;
 
@@ -31,8 +35,14 @@ export default function CharacterReaction({ studySession, onSelectFeeling }: Cha
   const [feelingId, setFeelingId] = useState<FeelingChoice["id"] | null>(null);
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState("");
+  const [firstAnswer, setFirstAnswer] = useState("");
+  const [followUpQuestion, setFollowUpQuestion] = useState("");
   const [closingLine, setClosingLine] = useState("");
   const [isFinishing, setIsFinishing] = useState(false);
+
+  // evidence 는 내부 판단값이다 — 아래 dev 표시 외에는 사용자에게 보이지 않는다.
+  const [evidence, setEvidence] = useState<ReflectionEvidence | null>(null);
+  const [assessmentFallback, setAssessmentFallback] = useState(false);
 
   // 각 단계 요청이 정확히 한 번만 처리되도록 동기 재진입 방어(렌더 타이밍과 무관).
   const busyRef = useRef(false);
@@ -41,6 +51,43 @@ export default function CharacterReaction({ studySession, onSelectFeeling }: Cha
   const subject = studySession.subject;
   const elapsedSeconds = studySession.elapsedSeconds ?? 0;
   const characterLine = buildReactionLine(subject, elapsedSeconds);
+
+  // /api/reaction 으로 마무리 한마디를 받는다. 실패/타임아웃이면 주제가 들어간
+  // 정적 fallback 을 돌려준다 — 흐름을 막지 않는다.
+  const fetchClosingLine = async (reflection: {
+    question: string;
+    answer: string;
+    followUpQuestion?: string;
+    followUpAnswer?: string;
+  }): Promise<string> => {
+    const recentMemories = loadRecentMemories();
+    try {
+      const response = await fetch("/api/reaction", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          subject,
+          targetMinutes: studySession.targetMinutes,
+          elapsedSeconds,
+          feelingId,
+          recentMemories,
+          reflection,
+        }),
+      });
+      if (response.ok) {
+        const data = (await response.json()) as { reaction?: unknown };
+        if (typeof data.reaction === "string" && data.reaction.trim() !== "") {
+          return data.reaction.trim();
+        }
+        console.error("[CharacterReaction] 예상치 못한 /api/reaction 응답:", data);
+      } else {
+        console.error("[CharacterReaction] /api/reaction 실패:", response.status);
+      }
+    } catch (error) {
+      console.error("[CharacterReaction] /api/reaction 호출 오류:", error);
+    }
+    return buildFallbackClosingLine(subject);
+  };
 
   // 1) 감상 선택 → 회고 질문 생성. 요청 중 다른 칩 재선택 금지.
   const handleSelectFeeling = async (picked: FeelingChoice["id"]) => {
@@ -77,50 +124,93 @@ export default function CharacterReaction({ studySession, onSelectFeeling }: Cha
     }
   };
 
-  // 2) 답변 제출 → 마무리 반응 생성. 요청 중 재클릭 금지.
+  // 2) 첫 답변 제출 → evidence 판단 → clear면 바로 마무리, 아니면 추가 질문.
   const handleSubmitAnswer = async () => {
     if (busyRef.current || step !== "reflection") return;
     const trimmed = answer.trim();
     if (trimmed === "" || feelingId === null) return;
     busyRef.current = true;
     setIsLoading(true);
+    setFirstAnswer(trimmed);
 
-    const recentMemories = loadRecentMemories();
-    let nextClosing = buildFallbackClosingLine(subject);
+    // assessment 실패 시 사용자를 붙잡지 않는다 — 기술적 fallback 으로 clear 취급.
+    // (실제 clear 판단이 아니라 흐름을 막지 않기 위함.)
+    let ev: ReflectionEvidence = "clear";
+    let usedFallback = false;
+    let followUp: string | undefined;
     try {
-      const response = await fetch("/api/reaction", {
+      const response = await fetch("/api/reflection-assessment", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          subject,
-          targetMinutes: studySession.targetMinutes,
-          elapsedSeconds,
-          feelingId,
-          recentMemories,
-          reflection: { question, answer: trimmed },
-        }),
+        body: JSON.stringify({ subject, question, answer: trimmed }),
       });
       if (response.ok) {
-        const data = (await response.json()) as { reaction?: unknown };
-        if (typeof data.reaction === "string" && data.reaction.trim() !== "") {
-          nextClosing = data.reaction.trim();
+        const data = (await response.json()) as {
+          evidence?: unknown;
+          followUpQuestion?: unknown;
+        };
+        if (
+          data.evidence === "clear" ||
+          data.evidence === "partial" ||
+          data.evidence === "unclear"
+        ) {
+          ev = data.evidence;
+          if (
+            typeof data.followUpQuestion === "string" &&
+            data.followUpQuestion.trim() !== ""
+          ) {
+            followUp = data.followUpQuestion.trim();
+          }
         } else {
-          console.error("[CharacterReaction] 예상치 못한 /api/reaction 응답:", data);
+          usedFallback = true;
+          console.error("[CharacterReaction] 예상치 못한 assessment 응답:", data);
         }
       } else {
-        console.error("[CharacterReaction] /api/reaction 실패:", response.status);
+        usedFallback = true;
+        console.error("[CharacterReaction] /api/reflection-assessment 실패:", response.status);
       }
     } catch (error) {
-      console.error("[CharacterReaction] /api/reaction 호출 오류:", error);
-    } finally {
-      setClosingLine(nextClosing);
-      setStep("finishing");
-      setIsLoading(false);
-      busyRef.current = false;
+      usedFallback = true;
+      console.error("[CharacterReaction] /api/reflection-assessment 호출 오류:", error);
     }
+
+    setEvidence(ev);
+    setAssessmentFallback(usedFallback);
+
+    if (ev === "clear") {
+      const closing = await fetchClosingLine({ question, answer: trimmed });
+      setClosingLine(closing);
+      setStep("finishing");
+    } else {
+      setFollowUpQuestion(followUp ?? FALLBACK_FOLLOWUP_QUESTION);
+      setAnswer("");
+      setStep("followup");
+    }
+    setIsLoading(false);
+    busyRef.current = false;
   };
 
-  // 3) 마무리 → done. 연타로 onSelectFeeling 이 여러 번 불리지 않게 방어.
+  // 3) 추가 질문 답변 제출 → 판단 없이 무조건 마무리(세 번째 질문 없음).
+  const handleSubmitFollowUp = async () => {
+    if (busyRef.current || step !== "followup") return;
+    const trimmed = answer.trim();
+    if (trimmed === "" || feelingId === null) return;
+    busyRef.current = true;
+    setIsLoading(true);
+
+    const closing = await fetchClosingLine({
+      question,
+      answer: firstAnswer,
+      followUpQuestion,
+      followUpAnswer: trimmed,
+    });
+    setClosingLine(closing);
+    setStep("finishing");
+    setIsLoading(false);
+    busyRef.current = false;
+  };
+
+  // 4) 마무리 → done. 연타로 onSelectFeeling 이 여러 번 불리지 않게 방어.
   const handleFinish = () => {
     if (submittedRef.current || feelingId === null) return;
     submittedRef.current = true;
@@ -136,6 +226,23 @@ export default function CharacterReaction({ studySession, onSelectFeeling }: Cha
       </p>
     </section>
   );
+
+  // 개발 환경에서만 보이는 작은 내부 판단 표시. production 빌드에서는
+  // 이 분기와 문자열이 통째로 제거된다.
+  const devEvidenceLine =
+    process.env.NODE_ENV === "development" && evidence ? (
+      <p className="mt-2 text-[10px] text-warm-gray/60">
+        Dev · evidence: {evidence}
+        {assessmentFallback ? " (fallback)" : ""}
+        {followUpQuestion ? " · follow-up: yes" : ""}
+      </p>
+    ) : null;
+
+  // reflection · followup 단계의 답변 입력 UI (동일 형태). onClick 핸들러만 다르다.
+  const answerFieldClass =
+    "mt-3 w-full resize-none rounded-2xl border border-peach/60 bg-cream px-4 py-3 text-sm text-cocoa outline-none focus:border-lavender-deep";
+  const submitButtonClass =
+    "mt-3 w-full rounded-2xl bg-lavender-deep py-3 text-sm font-semibold text-white transition-transform hover:scale-[1.02] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100";
 
   if (step === "feeling") {
     return (
@@ -165,24 +272,51 @@ export default function CharacterReaction({ studySession, onSelectFeeling }: Cha
     return (
       <section className="mx-6 rounded-3xl bg-white p-5 shadow-sm">
         <div className="rounded-2xl bg-lavender/50 px-4 py-3 text-sm text-cocoa">{question}</div>
-
         <textarea
           value={answer}
           onChange={(e) => setAnswer(e.target.value)}
           maxLength={ANSWER_MAX_LENGTH}
           rows={3}
           placeholder="짧게 적어도 괜찮아요"
-          className="mt-3 w-full resize-none rounded-2xl border border-peach/60 bg-cream px-4 py-3 text-sm text-cocoa outline-none focus:border-lavender-deep"
+          className={answerFieldClass}
         />
-
         <button
           type="button"
           disabled={isLoading || answer.trim() === ""}
           onClick={handleSubmitAnswer}
-          className="mt-3 w-full rounded-2xl bg-lavender-deep py-3 text-sm font-semibold text-white transition-transform hover:scale-[1.02] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100"
+          className={submitButtonClass}
         >
           말해주기
         </button>
+      </section>
+    );
+  }
+
+  if (step === "followup") {
+    if (isLoading) return loadingView("다온이가 오늘 공부를 떠올리고 있어요...");
+
+    return (
+      <section className="mx-6 rounded-3xl bg-white p-5 shadow-sm">
+        <div className="rounded-2xl bg-lavender/50 px-4 py-3 text-sm text-cocoa">
+          {followUpQuestion}
+        </div>
+        <textarea
+          value={answer}
+          onChange={(e) => setAnswer(e.target.value)}
+          maxLength={ANSWER_MAX_LENGTH}
+          rows={3}
+          placeholder="짧게 적어도 괜찮아요"
+          className={answerFieldClass}
+        />
+        <button
+          type="button"
+          disabled={isLoading || answer.trim() === ""}
+          onClick={handleSubmitFollowUp}
+          className={submitButtonClass}
+        >
+          말해주기
+        </button>
+        {devEvidenceLine}
       </section>
     );
   }
@@ -202,6 +336,7 @@ export default function CharacterReaction({ studySession, onSelectFeeling }: Cha
       >
         오늘 공부 마무리
       </button>
+      {devEvidenceLine}
     </section>
   );
 }
