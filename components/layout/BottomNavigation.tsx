@@ -3,19 +3,68 @@
 // 홈 / 기억 두 탭만 실제로 동작한다. 공부 / 다온이 는 아직 placeholder(비활성).
 // navLocked(공부 중 · 감상 선택 중)이면 탭 전환 자체를 막아 공부에 집중하게 한다.
 
+import type { ReactNode } from "react";
+
 export type NavTab = "home" | "memory";
 
 interface NavItem {
   label: string;
-  icon: string;
+  icon: ReactNode;
   tab?: NavTab;
 }
 
+// 이모지 대신 일관된 라인 아이콘. 24x24, stroke=currentColor 로 활성/비활성 색을 따라간다.
+const iconProps = {
+  width: 22,
+  height: 22,
+  viewBox: "0 0 24 24",
+  fill: "none",
+  stroke: "currentColor",
+  strokeWidth: 1.6,
+  strokeLinecap: "round" as const,
+  strokeLinejoin: "round" as const,
+  "aria-hidden": true,
+};
+
 const navItems: NavItem[] = [
-  { label: "홈", icon: "🏠", tab: "home" },
-  { label: "공부", icon: "📚" },
-  { label: "다온이", icon: "🐣" },
-  { label: "기억", icon: "🧠", tab: "memory" },
+  {
+    label: "홈",
+    tab: "home",
+    icon: (
+      <svg {...iconProps}>
+        <path d="M4 11.5 12 4l8 7.5" />
+        <path d="M6 10v9a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-9" />
+      </svg>
+    ),
+  },
+  {
+    label: "공부",
+    icon: (
+      <svg {...iconProps}>
+        <path d="M5 5.5A1.5 1.5 0 0 1 6.5 4H18a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H6.5A1.5 1.5 0 0 1 5 17.5Z" />
+        <path d="M5 17.5A1.5 1.5 0 0 1 6.5 16H19" />
+      </svg>
+    ),
+  },
+  {
+    label: "다온이",
+    icon: (
+      <svg {...iconProps}>
+        <path d="M12 4c1.5 2 1.5 3.5 0 5.5" />
+        <path d="M7 20c0-4 2.2-6.5 5-6.5s5 2.5 5 6.5" />
+        <circle cx="12" cy="12" r="2.2" />
+      </svg>
+    ),
+  },
+  {
+    label: "기억",
+    tab: "memory",
+    icon: (
+      <svg {...iconProps}>
+        <path d="M7 4h10a1 1 0 0 1 1 1v14l-6-3.2L6 19V5a1 1 0 0 1 1-1Z" />
+      </svg>
+    ),
+  },
 ];
 
 interface BottomNavigationProps {
@@ -30,7 +79,7 @@ export default function BottomNavigation({
   navLocked,
 }: BottomNavigationProps) {
   return (
-    <nav className="flex w-full items-center justify-around border-t border-warm-gray/15 bg-white py-2">
+    <nav className="flex w-full items-center justify-around border-t border-warm-line bg-white pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2">
       {navItems.map((item) => {
         const isActive = item.tab === activeTab;
         const isEnabled = item.tab !== undefined && !navLocked;
@@ -44,21 +93,21 @@ export default function BottomNavigation({
             disabled={!isEnabled}
             aria-current={isActive ? "page" : undefined}
             onClick={item.tab ? () => onTabChange(item.tab!) : undefined}
-            className={`relative flex flex-col items-center gap-0.5 rounded-xl px-3 pb-1 pt-2 text-[11px] transition-colors ${
+            className={`relative flex flex-col items-center gap-1 rounded-xl px-3 pb-1 pt-2.5 text-[11px] transition-colors ${
               isActive
                 ? "font-semibold text-cocoa"
                 : isPlaceholder
-                  ? "text-warm-gray/40"
+                  ? "text-warm-gray/35"
                   : "text-warm-gray"
             } ${isEnabled && !isActive ? "hover:text-cocoa" : ""}`}
           >
             <span
               aria-hidden
-              className={`absolute top-0 h-1 w-1 rounded-full ${
-                isActive ? "bg-lavender-deep" : "bg-transparent"
+              className={`absolute top-0 h-0.5 w-6 rounded-full transition-colors ${
+                isActive ? "bg-peach-deep" : "bg-transparent"
               }`}
             />
-            <span className="text-base leading-none">{item.icon}</span>
+            {item.icon}
             {item.label}
           </button>
         );

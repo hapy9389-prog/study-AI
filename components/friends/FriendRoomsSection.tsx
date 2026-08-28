@@ -30,10 +30,7 @@ export default function FriendRoomsSection({
 
       <ul className="flex flex-col gap-2">
         {friends.map((friend) => (
-          <li
-            key={friend.id}
-            className="flex items-center gap-3 rounded-2xl bg-white px-3 py-2.5 shadow-sm"
-          >
+          <li key={friend.id} className="list-row">
             <div className="scale-90">
               <FriendCharacter
                 avatarId={friend.avatarId}
@@ -49,7 +46,7 @@ export default function FriendRoomsSection({
             <button
               type="button"
               onClick={() => onVisit(friend.id)}
-              className="shrink-0 rounded-full border border-lavender-deep bg-white px-3 py-1.5 text-xs font-medium text-cocoa transition-colors hover:bg-lavender/40"
+              className="shrink-0 rounded-full border border-warm-gray/30 bg-white px-3 py-1.5 text-xs font-medium text-cocoa transition-colors hover:bg-cream-deep"
             >
               방 보러 가기
             </button>

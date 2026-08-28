@@ -23,7 +23,9 @@ export default function StudyMemoryCard({
       </div>
 
       <div className="milestone mt-4 text-center">
-        <p className="text-sm font-semibold text-cocoa">{memoryResult.memoryMessage}</p>
+        <p className="font-serif text-sm font-bold text-cocoa">
+          {memoryResult.memoryMessage}
+        </p>
         <p className="mt-1 text-xs text-warm-gray">
           {buildMemoryLine(studySession.subject)}
         </p>

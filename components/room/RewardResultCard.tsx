@@ -21,7 +21,9 @@ export default function RewardResultCard({ reward }: RewardResultCardProps) {
 
   return (
     <section className="card mx-6">
-      <p className="text-lg font-semibold text-cocoa">+{reward.earnedCoins} 코인</p>
+      <p className="text-base font-semibold text-cocoa">
+        +{reward.earnedCoins} 코인
+      </p>
       <p className="mt-1 text-xs text-warm-gray">
         {reward.earnedMinutes}분 공부
         {reward.goalBonus > 0 && " · 목표 달성 보너스 +10"}

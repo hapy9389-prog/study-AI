@@ -28,7 +28,9 @@ export default function ScreenShell({
 
   return (
     <div className="flex min-h-screen w-full justify-center bg-warm-gray/10">
-      <div className="flex min-h-screen w-full max-w-[430px] flex-col bg-cream px-6 py-8 shadow-xl">
+      <div
+        className="motion-safe:animate-screen-enter flex min-h-screen w-full max-w-[430px] flex-col bg-cream px-6 pb-[max(2rem,env(safe-area-inset-bottom))] pt-8 shadow-[var(--shadow-lift)]"
+      >
         {onBack && (
           <button type="button" onClick={onBack} className="btn-ghost">
             ← 돌아가기
@@ -42,18 +44,16 @@ export default function ScreenShell({
         )}
 
         {title && (
-          <h1
-            className={`text-xl font-semibold text-cocoa ${
-              eyebrow ? "mt-1" : firstHeaderSpacing
-            }`}
-          >
+          <h1 className={`screen-title ${eyebrow ? "mt-1" : firstHeaderSpacing}`}>
             {title}
           </h1>
         )}
 
-        {subtitle && <p className="mt-1 text-xs text-warm-gray">{subtitle}</p>}
+        {subtitle && (
+          <p className="mt-1.5 text-xs leading-relaxed text-warm-gray">{subtitle}</p>
+        )}
 
-        <div className="mt-5 flex flex-1 flex-col gap-4">{children}</div>
+        <div className="mt-6 flex flex-1 flex-col gap-4">{children}</div>
 
         {footer && <div className="mt-6">{footer}</div>}
       </div>

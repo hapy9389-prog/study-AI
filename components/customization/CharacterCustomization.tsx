@@ -68,9 +68,17 @@ export default function CharacterCustomization({
 
   return (
     <ScreenShell onBack={onBack} title="다온 꾸미기">
-      <div className="card flex flex-col items-center gap-4 py-6">
-        <CharacterFace expression="happy" accessoryId={equippedAccessoryId} />
-        <p className="text-sm font-medium text-cocoa">보유 코인 {coins}</p>
+      <div className="card relative flex flex-col items-center gap-4 overflow-hidden py-8">
+        <span
+          aria-hidden
+          className="pointer-events-none absolute left-1/2 top-10 h-32 w-32 -translate-x-1/2 rounded-full bg-[radial-gradient(circle,var(--color-peach)_0%,transparent_70%)] opacity-50 blur-2xl"
+        />
+        <div className="relative">
+          <CharacterFace expression="happy" accessoryId={equippedAccessoryId} />
+        </div>
+        <p className="relative text-sm text-warm-gray">
+          보유 코인 <span className="font-semibold text-cocoa">{coins}</span>
+        </p>
       </div>
 
       <ul className="flex flex-col gap-2">
@@ -88,8 +96,8 @@ export default function CharacterCustomization({
           return (
             <li
               key={accessory.id}
-              className={`flex items-center gap-3 rounded-2xl bg-white px-3 py-3 shadow-sm ${
-                equipped ? "ring-1 ring-lavender-deep" : ""
+              className={`list-row ${
+                equipped ? "ring-1 ring-peach-deep" : ""
               }`}
             >
               <AccessoryPreview id={accessory.id} />
@@ -97,7 +105,7 @@ export default function CharacterCustomization({
                 <p className="text-sm font-medium text-cocoa">{accessory.name}</p>
                 <p
                   className={`text-xs ${
-                    equipped ? "text-lavender-deep" : "text-warm-gray"
+                    equipped ? "text-peach-deep" : "text-warm-gray"
                   }`}
                 >
                   {statusText}
@@ -126,7 +134,7 @@ export default function CharacterCustomization({
                 <button
                   type="button"
                   onClick={() => onEquip(accessory.id)}
-                  className="shrink-0 rounded-full border border-lavender-deep bg-white px-4 py-2.5 text-sm font-medium text-cocoa transition-colors hover:bg-lavender/40"
+                  className="shrink-0 rounded-full border border-peach-deep bg-white px-4 py-2.5 text-sm font-medium text-cocoa transition-colors hover:bg-peach/30"
                 >
                   장착
                 </button>
@@ -135,7 +143,7 @@ export default function CharacterCustomization({
                 <button
                   type="button"
                   onClick={onUnequip}
-                  className="shrink-0 rounded-full bg-lavender-deep px-4 py-2.5 text-sm font-medium text-cocoa transition hover:brightness-95"
+                  className="shrink-0 rounded-full border border-warm-gray/30 bg-white px-4 py-2.5 text-sm font-medium text-warm-gray transition-colors hover:bg-cream-deep"
                 >
                   장착 해제
                 </button>

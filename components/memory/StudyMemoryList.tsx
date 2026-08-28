@@ -25,20 +25,23 @@ export default function StudyMemoryList() {
   return (
     <section className="mx-6 flex flex-col gap-3">
       <header>
-        <h2 className="text-xl font-semibold text-cocoa">기억</h2>
+        <h2 className="screen-title">기억</h2>
         <p className="mt-0.5 text-xs text-warm-gray">최근 공부</p>
       </header>
 
       {records.length === 0 ? (
-        <p className="card text-center text-sm text-warm-gray">
+        <p className="card text-center text-sm leading-relaxed text-warm-gray">
           아직 같이 공부한 기억이 없어요.
         </p>
       ) : (
         <ul className="flex flex-col gap-3">
           {records.map((record) => (
-            <li key={record.id} className="card">
+            <li
+              key={record.id}
+              className="card border-l-2 border-peach-deep/50"
+            >
               <div className="flex items-baseline justify-between gap-3">
-                <span className="text-sm font-semibold text-cocoa">
+                <span className="font-serif text-base font-bold text-cocoa">
                   {record.subject}
                 </span>
                 <span className="shrink-0 text-xs text-warm-gray">

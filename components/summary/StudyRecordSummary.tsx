@@ -28,10 +28,13 @@ export default function StudyRecordSummary({
 
   return (
     <section className="card mx-6">
-      <h3 className="text-sm font-semibold text-cocoa">오늘의 학습 기록</h3>
-      <dl className="mt-3 flex flex-col gap-2">
+      <h3 className="font-serif text-sm font-bold text-cocoa">오늘의 학습 기록</h3>
+      <dl className="mt-3 flex flex-col divide-y divide-warm-line">
         {rows.map((row) => (
-          <div key={row.label} className="flex justify-between gap-4 text-sm">
+          <div
+            key={row.label}
+            className="flex justify-between gap-4 py-2 text-sm first:pt-0 last:pb-0"
+          >
             <dt className="shrink-0 text-warm-gray">{row.label}</dt>
             <dd className="text-right text-cocoa">{row.value}</dd>
           </div>

@@ -110,7 +110,7 @@ export default function StudyCard({
                 setTargetMinutes(null);
               }}
               placeholder="직접 입력"
-              className="w-24 rounded-2xl border border-peach/60 bg-cream px-3 py-2 text-sm text-cocoa outline-none transition-colors focus:border-lavender-deep"
+              className="w-24 rounded-2xl border border-peach/60 bg-cream px-3 py-2 text-sm text-cocoa outline-none transition-colors focus:border-peach-deep"
             />
           </div>
 
@@ -126,20 +126,31 @@ export default function StudyCard({
       )}
 
       {phase === "studying" && studySession && (
-        <div className="flex flex-col items-center gap-3">
-          <p className="text-base font-semibold text-cocoa">
+        <div className="relative flex flex-col items-center gap-3">
+          {/* 다온+시계가 "불빛 안에" 앉도록 아주 옅은 온기 */}
+          <span
+            aria-hidden
+            className="pointer-events-none absolute left-1/2 top-1/2 h-56 w-56 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle,var(--color-peach)_0%,transparent_70%)] opacity-40 blur-2xl"
+          />
+          <p className="relative font-serif text-base text-cocoa">
             {studySession.subject} 공부 중
           </p>
-          <p className="font-mono text-5xl font-bold tabular-nums text-cocoa">
+          <p className="relative text-5xl font-light tabular-nums tracking-tight text-cocoa">
             {formatClock(liveElapsedSeconds)}
           </p>
-          <p className="text-xs text-warm-gray">목표 {studySession.targetMinutes}분</p>
-          <button type="button" onClick={onCompleteStudy} className="btn-primary">
+          <p className="relative text-xs text-warm-gray">
+            목표 {studySession.targetMinutes}분
+          </p>
+          <button
+            type="button"
+            onClick={onCompleteStudy}
+            className="btn-primary relative"
+          >
             공부 완료
           </button>
 
           {process.env.NODE_ENV === "development" && (
-            <div className="mt-3 w-full border-t border-warm-gray/15 pt-3">
+            <div className="mt-3 w-full border-t border-warm-line pt-3">
               <p className="text-[11px] text-warm-gray">개발 테스트</p>
               <div className="mt-1.5 flex gap-1.5">
                 {DEBUG_ELAPSED_PRESETS.map(({ label, seconds }) => (

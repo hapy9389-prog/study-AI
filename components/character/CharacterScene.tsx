@@ -21,8 +21,18 @@ export default function CharacterScene({
   expression,
   accessoryId,
 }: CharacterSceneProps) {
+  // 시그니처 "함께 있는 불빛" — 다온 뒤 따뜻한 빛 번짐. scene 에 따라 크기/세기가
+  // 달라진다. 공부 중에만 아주 느리게 호흡한다(prefers-reduced-motion 이면 정지).
+  const lampClass =
+    scene === "studying"
+      ? "h-40 w-40 opacity-90 motion-safe:animate-lamp-breathe"
+      : "h-28 w-28 opacity-55";
+
   return (
     <div className="relative flex h-40 w-full max-w-[280px] items-end justify-center">
+      <span
+        className={`lamp-glow bottom-4 left-1/2 -translate-x-1/2 ${lampClass}`}
+      />
       {scene === "studying" ? (
         <>
           {/* 스탠드: 기둥 + 갓 불빛 */}
@@ -31,7 +41,7 @@ export default function CharacterScene({
           {/* 책상 상판 */}
           <span className="absolute bottom-0 h-4 w-full rounded-full bg-cocoa/15" />
           {/* 펼친 책 (가운데 접힘선) */}
-          <span className="absolute bottom-3 left-1/2 h-6 w-28 -translate-x-1/2 rounded-sm bg-lavender/70" />
+          <span className="absolute bottom-3 left-1/2 h-6 w-28 -translate-x-1/2 rounded-sm bg-warm-gray/20" />
           <span className="absolute bottom-3 left-1/2 h-6 w-px -translate-x-1/2 bg-warm-gray/40" />
           {/* 연필 */}
           <span className="absolute bottom-4 left-6 h-1 w-10 -rotate-12 rounded-full bg-peach-deep/80" />
@@ -39,8 +49,8 @@ export default function CharacterScene({
       ) : (
         <>
           {/* 소파 / 쿠션 */}
-          <span className="absolute bottom-0 h-10 w-60 rounded-[28px] bg-lavender/55" />
-          <span className="absolute bottom-6 h-16 w-44 rounded-[28px] bg-lavender/35" />
+          <span className="absolute bottom-0 h-10 w-60 rounded-[28px] bg-cream-deep" />
+          <span className="absolute bottom-6 h-16 w-44 rounded-[28px] bg-peach/25" />
         </>
       )}
       <div className="relative z-10 pb-2">

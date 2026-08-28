@@ -33,7 +33,7 @@ function FriendStudyRow({
   if (friend.status === "studying") {
     detail = `${friend.subject} · ${elapsedMinutes(friend.startedAt, now)}분째`;
     badge = "공부 중";
-    tone = "bg-lavender/40";
+    tone = "bg-peach/25";
   } else if (friend.status === "completed") {
     detail = `오늘 ${friend.subject} ${friend.todayStudyMinutes}분`;
     badge = "공부 완료";
@@ -73,7 +73,7 @@ export default function FriendStudySection() {
   }, []);
 
   return (
-    <section className="mx-6 rounded-3xl bg-white p-5 shadow-sm">
+    <section className="card mx-6">
       <div className="flex items-center justify-between">
         <p className="text-xs font-medium text-warm-gray">친구들의 공부</p>
         <span className="rounded-full bg-warm-gray/10 px-2 py-0.5 text-[10px] text-warm-gray">

@@ -38,7 +38,7 @@ const AVATAR: Record<
   jihun: {
     face: "bg-peach",
     hair: "bg-cocoa/80",
-    body: "bg-mint",
+    body: "bg-cocoa/55",
     accessory: "headphones",
   },
 };
@@ -50,7 +50,7 @@ function StatusScene({ status }: { status: FriendStudyStatusType }) {
         {/* 책상 상판 */}
         <span className="absolute bottom-0 h-1.5 w-full rounded-full bg-cocoa/15" />
         {/* 펼친 책 */}
-        <span className="absolute bottom-1.5 left-1 h-3 w-5 -rotate-6 rounded-sm bg-lavender/70" />
+        <span className="absolute bottom-1.5 left-1 h-3 w-5 -rotate-6 rounded-sm bg-warm-gray/25" />
         {/* 연필 */}
         <span className="absolute bottom-2.5 right-1 h-0.5 w-4 rotate-45 rounded-full bg-peach-deep/80" />
       </>
@@ -60,14 +60,14 @@ function StatusScene({ status }: { status: FriendStudyStatusType }) {
     // 덮은 책 한두 권 정도 — 트로피/폭죽 없음.
     return (
       <>
-        <span className="absolute bottom-0 h-1.5 w-9 rounded-sm bg-mint/70" />
-        <span className="absolute bottom-1.5 h-1.5 w-7 rounded-sm bg-lavender/60" />
+        <span className="absolute bottom-0 h-1.5 w-9 rounded-sm bg-peach-deep/50" />
+        <span className="absolute bottom-1.5 h-1.5 w-7 rounded-sm bg-warm-gray/30" />
       </>
     );
   }
   // idle: 쿠션
   return (
-    <span className="absolute bottom-0 h-4 w-14 rounded-2xl bg-lavender/40" />
+    <span className="absolute bottom-0 h-4 w-14 rounded-2xl bg-cream-deep" />
   );
 }
 

@@ -21,7 +21,7 @@ export default function ReflectionTestPanel({
   onEnterReaction: (session: StudySession) => void;
 }) {
   return (
-    <section className="mx-6 rounded-3xl bg-white p-5 shadow-sm">
+    <section className="card mx-6">
       <div className="flex items-center justify-between">
         <p className="text-xs font-medium text-warm-gray">회고 테스트</p>
         <span className="rounded-full bg-warm-gray/10 px-2 py-0.5 text-[10px] text-warm-gray">

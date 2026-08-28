@@ -23,13 +23,13 @@ interface RoomSceneProps {
 export default function RoomScene({ stage, character }: RoomSceneProps) {
   return (
     <div
-      className={`relative mt-3 h-44 w-full overflow-hidden rounded-2xl border border-warm-gray/12 ${
+      className={`relative mt-3 h-44 w-full overflow-hidden rounded-2xl border border-warm-line ${
         stage >= 3 ? "bg-peach/25" : "bg-cream"
       }`}
     >
-      {/* Stage 3: 더 따뜻한 조명 — 은은한 빛 번짐 */}
+      {/* Stage 3: 더 따뜻한 조명 — 은은한 빛 번짐 (lamplight 와 같은 톤) */}
       {stage >= 3 && (
-        <span className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-peach-deep/25 blur-xl" />
+        <span className="absolute -right-6 -top-6 h-28 w-28 rounded-full bg-peach-deep/25 blur-2xl" />
       )}
 
       {/* 바닥 */}
@@ -37,7 +37,7 @@ export default function RoomScene({ stage, character }: RoomSceneProps) {
 
       {/* Stage 2: 러그 */}
       {stage >= 2 && (
-        <span className="absolute bottom-2 left-1/2 h-6 w-40 -translate-x-1/2 rounded-full bg-lavender/45" />
+        <span className="absolute bottom-2 left-1/2 h-6 w-40 -translate-x-1/2 rounded-full bg-peach/35" />
       )}
 
       {/* 책상 + 의자 (Stage 1) */}

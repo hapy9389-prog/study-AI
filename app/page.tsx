@@ -339,7 +339,7 @@ export default function Home() {
             <>
               <MyRoom equippedAccessoryId={customization.equippedAccessoryId} />
               {/* MyRoom 카드에 붙는 세컨더리 액션 — [공부 시작]보다 약한 톤. */}
-              <div className="mx-6 -mt-2 flex gap-2">
+              <div className="mx-6 flex gap-2">
                 <button
                   type="button"
                   onClick={openMyRoomScreen}

@@ -219,11 +219,13 @@ export default function CharacterReaction({ studySession, onSelectFeeling }: Cha
   };
 
   const loadingView = (text: string) => (
-    <section className="card mx-6 flex min-h-[168px] items-center justify-center">
-      <p className="flex items-center gap-2 text-sm text-warm-gray">
-        <span className="h-2 w-2 animate-pulse rounded-full bg-lavender-deep" />
-        {text}
-      </p>
+    <section className="card mx-6 flex min-h-[168px] flex-col items-center justify-center gap-3">
+      <span aria-hidden className="flex gap-1.5">
+        <span className="motion-safe:animate-quiet-dot h-1.5 w-1.5 rounded-full bg-lavender-deep" />
+        <span className="motion-safe:animate-quiet-dot h-1.5 w-1.5 rounded-full bg-lavender-deep [animation-delay:0.2s]" />
+        <span className="motion-safe:animate-quiet-dot h-1.5 w-1.5 rounded-full bg-lavender-deep [animation-delay:0.4s]" />
+      </span>
+      <p className="font-serif text-sm text-warm-gray">{text}</p>
     </section>
   );
 

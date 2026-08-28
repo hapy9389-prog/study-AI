@@ -47,7 +47,9 @@ export default function CharacterArea({
       )}
 
       {phase === "studying" && (
-        <p className="text-xs text-warm-gray">다온이가 조용히 함께 있어요</p>
+        <p className="font-serif text-sm text-warm-gray">
+          다온이가 조용히 함께 있어요
+        </p>
       )}
 
       {/* 무드 배지는 공부 시작 전(idle)에만. 공부 중·회고 중에는 시선을 뺏지 않는다. */}
@@ -56,7 +58,7 @@ export default function CharacterArea({
           {moodBadges.map((badge) => (
             <span
               key={badge}
-              className="rounded-full bg-lavender/40 px-2.5 py-0.5 text-[11px] text-warm-gray"
+              className="rounded-full bg-cream-deep px-2.5 py-1 text-[11px] text-warm-gray"
             >
               {badge}
             </span>

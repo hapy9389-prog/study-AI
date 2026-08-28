@@ -84,7 +84,7 @@ export default function CharacterFace({
   const showBlush = expression === "happy" || expression === "excited";
 
   return (
-    <div className="relative flex h-32 w-32 items-center justify-center rounded-full bg-peach shadow-md">
+    <div className="relative flex h-32 w-32 items-center justify-center rounded-full bg-peach shadow-[0_8px_24px_-6px_rgb(90_74_63/0.18)]">
       {showBlush && (
         <>
           <span className="absolute left-4 top-[68px] h-3 w-4 rounded-full bg-peach-deep/70" />

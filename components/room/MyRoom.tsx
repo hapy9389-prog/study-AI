@@ -72,7 +72,7 @@ export default function MyRoom({ equippedAccessoryId = null }: MyRoomProps) {
       </dl>
 
       {process.env.NODE_ENV === "development" && (
-        <div className="mt-4 border-t border-warm-gray/15 pt-3">
+        <div className="mt-4 border-t border-warm-line pt-3">
           <div className="flex items-center justify-between">
             <p className="text-[11px] text-warm-gray">방 단계 미리보기</p>
             <span className="rounded-full bg-warm-gray/10 px-2 py-0.5 text-[10px] text-warm-gray">
