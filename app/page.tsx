@@ -9,6 +9,7 @@ import CharacterReaction from "@/components/reaction/CharacterReaction";
 import StudyMemoryCard from "@/components/memory/StudyMemoryCard";
 import StudyMemoryList from "@/components/memory/StudyMemoryList";
 import StudyRecordSummary from "@/components/summary/StudyRecordSummary";
+import FriendStudySection from "@/components/friends/FriendStudySection";
 import { memoryResult } from "@/lib/mockData";
 import { createStudyRecord, saveStudyRecord } from "@/lib/studyRecords";
 import {
@@ -140,6 +141,13 @@ export default function Home() {
             />
           )}
 
+          {/* 개발자 모드 데모: 친구들이 공부 중인 분위기를 보여준다. 공부 시작 전
+              (idle)에만 노출해 [공부 시작] CTA 를 방해하지 않는다. studying /
+              reaction 에서는 아래 조건에 걸리지 않아 자동으로 숨겨진다. */}
+          {process.env.NODE_ENV === "development" && state.phase === "idle" && (
+            <FriendStudySection />
+          )}
+
           {state.phase === "reaction" && state.studySession && (
             <CharacterReaction
               studySession={state.studySession}
@@ -169,6 +177,7 @@ export default function Home() {
               >
                 새 공부 시작하기
               </button>
+              {process.env.NODE_ENV === "development" && <FriendStudySection />}
             </>
           )}
         </>

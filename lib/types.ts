@@ -89,6 +89,24 @@ export interface MemoryResult {
   responseLines: Record<FeelingChoice["id"], string>;
 }
 
+// 개발자 모드 데모 전용 Mock 친구 상태. 실제 친구/DB/Auth 아님(lib/mockFriends.ts).
+export type FriendStudyStatusType = "studying" | "completed" | "idle";
+
+export interface FriendStudyStatus {
+  id: string;
+  nickname: string;
+  status: FriendStudyStatusType;
+  /** studying / completed 일 때 표시할 과목. idle 이면 없음. */
+  subject?: string;
+  /**
+   * studying 상태에서만 사용. Date.now() 기준 ms 타임스탬프.
+   * 경과 시간은 화면에서 now - startedAt 으로 계산한다(누적 +1 아님).
+   */
+  startedAt?: number;
+  /** 오늘 누적 공부 시간(분). completed 카드에서 사용. */
+  todayStudyMinutes: number;
+}
+
 // idle: 오늘 공부할 내용/목표 시간 입력
 // studying: 공부 중 (캐릭터는 조용히 함께 있을 뿐, 새 대사/이벤트 없음)
 // reaction: 공부 완료 직후 다온의 짧은 반응 + 감상 선택
