@@ -12,7 +12,7 @@ import StudyMemoryList from "@/components/memory/StudyMemoryList";
 import FriendsSection from "@/components/friends/FriendsSection";
 import FriendRoomScreen from "@/components/friends/FriendRoomScreen";
 import SocialCheckInScreen from "@/components/social/SocialCheckInScreen";
-import ReflectionTestPanel from "@/components/study/ReflectionTestPanel";
+import StudyStatsScreen from "@/components/stats/StudyStatsScreen";
 import MyRoom from "@/components/room/MyRoom";
 import MyRoomScreen from "@/components/room/MyRoomScreen";
 import CharacterCustomization from "@/components/customization/CharacterCustomization";
@@ -374,6 +374,8 @@ export default function Home() {
     <MobileLayout activeTab={activeTab} onTabChange={setTab} navLocked={navLocked}>
       {activeTab === "memory" ? (
         <StudyMemoryList />
+      ) : activeTab === "stats" ? (
+        <StudyStatsScreen onGoHome={() => setTab("home")} />
       ) : state.phase === "studying" && state.studySession ? (
         // 공부 중: 카드 스택이 아니라 하나의 조용한 장면. 캐릭터 + 타이머 +
         // [공부 완료] 를 세로 중앙에 모으고 다른 요소는 띄우지 않는다.
@@ -431,18 +433,6 @@ export default function Home() {
               onDebugSetElapsed={(elapsedSeconds) =>
                 dispatch({ type: "DEBUG_SET_ELAPSED", elapsedSeconds })
               }
-            />
-          )}
-
-          {/* 개발자 모드 전용: 타이머를 거치지 않고 preset으로 바로 reaction(회고)
-              진입. idle에서만 노출되고, 클릭 즉시 phase가 바뀌며 사라진다 —
-              별도 lock 없이 이 구조 자체가 연타 방어다. */}
-          {process.env.NODE_ENV === "development" && state.phase === "idle" && (
-            <ReflectionTestPanel
-              onEnterReaction={(session) => {
-                recordSavedRef.current = false;
-                dispatch({ type: "DEBUG_ENTER_REACTION", studySession: session });
-              }}
             />
           )}
 

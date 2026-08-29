@@ -1,11 +1,11 @@
 "use client";
 
-// 홈 / 기억 두 탭만 실제로 동작한다. 공부 / 캐릭터 는 아직 placeholder(비활성).
+// 홈 / 통계 / 기억 세 탭이 실제로 동작한다. 캐릭터 는 아직 placeholder(비활성).
 // navLocked(공부 중 · 감상 선택 중)이면 탭 전환 자체를 막아 공부에 집중하게 한다.
 
 import type { ReactNode } from "react";
 
-export type NavTab = "home" | "memory";
+export type NavTab = "home" | "stats" | "memory";
 
 interface NavItem {
   label: string;
@@ -38,11 +38,15 @@ const navItems: NavItem[] = [
     ),
   },
   {
-    label: "공부",
+    label: "통계",
+    tab: "stats",
     icon: (
       <svg {...iconProps}>
-        <path d="M5 5.5A1.5 1.5 0 0 1 6.5 4H18a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H6.5A1.5 1.5 0 0 1 5 17.5Z" />
-        <path d="M5 17.5A1.5 1.5 0 0 1 6.5 16H19" />
+        <path d="M4 20V4" />
+        <path d="M4 20h16" />
+        <path d="M8 20v-6" />
+        <path d="M13 20V9" />
+        <path d="M18 20v-9" />
       </svg>
     ),
   },
@@ -83,7 +87,7 @@ export default function BottomNavigation({
       {navItems.map((item) => {
         const isActive = item.tab === activeTab;
         const isEnabled = item.tab !== undefined && !navLocked;
-        // 아직 안 만든 탭(공부 / 다온이)은 눌리는 것처럼 보이지 않게 더 흐리게.
+        // 아직 안 만든 탭(캐릭터)은 눌리는 것처럼 보이지 않게 더 흐리게.
         const isPlaceholder = item.tab === undefined;
 
         return (
