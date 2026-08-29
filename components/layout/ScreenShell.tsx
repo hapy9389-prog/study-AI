@@ -29,7 +29,7 @@ export default function ScreenShell({
 
   return (
     <PhoneFrame>
-      <div className="motion-safe:animate-screen-enter flex min-h-0 flex-1 flex-col overflow-y-auto px-6 pb-[max(2rem,env(safe-area-inset-bottom))] pt-8">
+      <div className="motion-safe:animate-screen-enter flex min-h-0 flex-1 flex-col overflow-y-auto scrollbar-hidden px-6 pb-[max(2rem,env(safe-area-inset-bottom))] pt-8">
         {onBack && (
           <button type="button" onClick={onBack} className="btn-ghost">
             ← 돌아가기

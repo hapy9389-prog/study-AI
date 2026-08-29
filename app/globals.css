@@ -118,6 +118,17 @@ body {
   );
 }
 
+/* 스크롤 동작(휠·트랙패드·터치)은 유지하고 스크롤바만 시각적으로 숨긴다.
+   실제 스크롤 컨테이너(MobileLayout / ScreenShell 의 overflow-y-auto)에만 적용.
+   PhoneFrame 자체에는 넣지 않는다. */
+@utility scrollbar-hidden {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* 구형 Edge/IE */
+  &::-webkit-scrollbar {
+    display: none; /* Chrome / Edge / Safari */
+  }
+}
+
 /* --- 시그니처: 함께 있는 불빛(lamplight) --------------------------------------
    다온 뒤 따뜻한 빛 번짐. 위치/크기는 호출부(CharacterScene)가 정한다. */
 @utility lamp-glow {

@@ -20,7 +20,7 @@ export default function MobileLayout({
 }: MobileLayoutProps) {
   return (
     <PhoneFrame>
-      <div className="motion-safe:animate-screen-enter flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto py-6">
+      <div className="motion-safe:animate-screen-enter flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto scrollbar-hidden py-6">
         {children}
       </div>
       <div className="shrink-0">
