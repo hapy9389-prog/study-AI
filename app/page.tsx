@@ -376,6 +376,8 @@ export default function Home() {
         <StudyMemoryList />
       ) : activeTab === "stats" ? (
         <StudyStatsScreen onGoHome={() => setTab("home")} />
+      ) : activeTab === "friends" ? (
+        <FriendsSection friends={friends} onVisit={setSelectedFriendId} />
       ) : state.phase === "studying" && state.studySession ? (
         // 공부 중: 카드 스택이 아니라 하나의 조용한 장면. 캐릭터 + 타이머 +
         // [공부 완료] 를 세로 중앙에 모으고 다른 요소는 띄우지 않는다.
@@ -434,11 +436,6 @@ export default function Home() {
                 dispatch({ type: "DEBUG_SET_ELAPSED", elapsedSeconds })
               }
             />
-          )}
-
-          {/* 친구들: idle 에서만, 공부 시작 CTA 보다 아래. */}
-          {state.phase === "idle" && (
-            <FriendsSection friends={friends} onVisit={setSelectedFriendId} />
           )}
 
           {state.phase === "reaction" && state.studySession && (

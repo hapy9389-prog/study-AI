@@ -4,14 +4,13 @@ import { useEffect, useState } from "react";
 import FriendCharacter from "@/components/social/FriendCharacter";
 import type { FriendStudyStatus } from "@/lib/types";
 
-// 홈 idle 의 단일 친구 섹션. 예전엔 "친구들의 공부"(FriendStudySection, dev 전용
-// 상태 표시)와 "친구 공간"(FriendRoomsSection, 방 진입)이 따로 있어 같은 mock
-// 친구 목록이 두 번 보였다. 이제 한 줄에 상태 + 방 진입을 함께 둔다.
+// "친구" 탭 화면. 예전엔 "친구들의 공부"(FriendStudySection, dev 전용 상태 표시)와
+// "친구 공간"(FriendRoomsSection, 방 진입)이 따로 있어 같은 mock 친구 목록이 두 번
+// 보였다. 이제 한 줄에 상태 + 방 진입을 함께 둔다.
 //
 // 목적은 "친구도 공부하고 있네 → 나도 해야겠다"라는 사회적 동기다. 경쟁
-// (랭킹/등수/streak 비교)이나 상호작용(응원/DM)은 넣지 않는다. 홈의 가장 큰
-// CTA 는 여전히 "공부 시작"이므로 카드를 크게 만들지 않고, 상태 문구가 "방 보러
-// 가기" 버튼보다 먼저 읽히게 둔다.
+// (랭킹/등수/streak 비교)이나 상호작용(응원/DM)은 넣지 않는다. 첫 진입의 Social
+// Check-in 교실 장면과 달리 여기는 현재 상태를 빠르게 확인하고 방문하는 화면이다.
 
 interface FriendsSectionProps {
   friends: FriendStudyStatus[];
@@ -56,9 +55,19 @@ export default function FriendsSection({
     return () => clearInterval(id);
   }, []);
 
+  // 하드코딩하지 않고 friends 배열에서 계산한다.
+  const studyingCount = friends.filter((f) => f.status === "studying").length;
+  const summaryLine =
+    studyingCount > 0
+      ? `${studyingCount}명이 지금 공부하고 있어요`
+      : "지금은 다들 쉬고 있어요";
+
   return (
-    <section className="mx-6 flex flex-col gap-2">
-      <p className="text-xs font-medium text-warm-gray">친구들</p>
+    <section className="mx-6 flex flex-col gap-3">
+      <header>
+        <h2 className="screen-title">친구들</h2>
+        <p className="mt-0.5 text-xs text-warm-gray">{summaryLine}</p>
+      </header>
 
       <ul className="flex flex-col gap-2">
         {friends.map((friend) => {

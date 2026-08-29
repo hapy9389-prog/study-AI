@@ -1,16 +1,16 @@
 "use client";
 
-// 홈 / 통계 / 기억 세 탭이 실제로 동작한다. 캐릭터 는 아직 placeholder(비활성).
+// 홈 / 통계 / 친구 / 기억 네 탭이 모두 동작한다.
 // navLocked(공부 중 · 감상 선택 중)이면 탭 전환 자체를 막아 공부에 집중하게 한다.
 
 import type { ReactNode } from "react";
 
-export type NavTab = "home" | "stats" | "memory";
+export type NavTab = "home" | "stats" | "friends" | "memory";
 
 interface NavItem {
   label: string;
   icon: ReactNode;
-  tab?: NavTab;
+  tab: NavTab;
 }
 
 // 이모지 대신 일관된 라인 아이콘. 24x24, stroke=currentColor 로 활성/비활성 색을 따라간다.
@@ -51,12 +51,14 @@ const navItems: NavItem[] = [
     ),
   },
   {
-    label: "캐릭터",
+    label: "친구",
+    tab: "friends",
     icon: (
       <svg {...iconProps}>
-        <path d="M12 4c1.5 2 1.5 3.5 0 5.5" />
-        <path d="M7 20c0-4 2.2-6.5 5-6.5s5 2.5 5 6.5" />
-        <circle cx="12" cy="12" r="2.2" />
+        <circle cx="9" cy="9" r="3" />
+        <path d="M3.5 19c0-3 2.4-5 5.5-5s5.5 2 5.5 5" />
+        <path d="M15.5 6.4a2.7 2.7 0 0 1 0 5.2" />
+        <path d="M17.5 14.2c2.1.6 3.5 2.5 3.5 4.8" />
       </svg>
     ),
   },
@@ -86,9 +88,7 @@ export default function BottomNavigation({
     <nav className="flex w-full items-center justify-around border-t border-warm-line bg-white pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2">
       {navItems.map((item) => {
         const isActive = item.tab === activeTab;
-        const isEnabled = item.tab !== undefined && !navLocked;
-        // 아직 안 만든 탭(캐릭터)은 눌리는 것처럼 보이지 않게 더 흐리게.
-        const isPlaceholder = item.tab === undefined;
+        const isEnabled = !navLocked;
 
         return (
           <button
@@ -96,13 +96,9 @@ export default function BottomNavigation({
             type="button"
             disabled={!isEnabled}
             aria-current={isActive ? "page" : undefined}
-            onClick={item.tab ? () => onTabChange(item.tab!) : undefined}
+            onClick={() => onTabChange(item.tab)}
             className={`relative flex flex-col items-center gap-1 rounded-xl px-3 pb-1 pt-2.5 text-[11px] transition-colors ${
-              isActive
-                ? "font-semibold text-cocoa"
-                : isPlaceholder
-                  ? "text-warm-gray/35"
-                  : "text-warm-gray"
+              isActive ? "font-semibold text-cocoa" : "text-warm-gray"
             } ${isEnabled && !isActive ? "hover:text-cocoa" : ""}`}
           >
             <span
