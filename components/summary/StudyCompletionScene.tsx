@@ -2,8 +2,9 @@ import PostStudyCharacter from "@/components/character/PostStudyCharacter";
 import {
   buildMemoryMessage,
   clarityDoneLine,
+  feelingDisplayLabel,
   memoryResult,
-  reactionData,
+  normalizeFeelingId,
   toMinutes,
 } from "@/lib/mockData";
 import { characterNickname, type CharacterId } from "@/lib/characters";
@@ -56,9 +57,9 @@ export default function StudyCompletionScene({
   onStartNew,
 }: StudyCompletionSceneProps) {
   const closingLine =
-    aiReaction ?? getCharacterVoice(characterId).responseLines[feelingId];
-  const feelingText =
-    reactionData.choices.find((c) => c.id === feelingId)?.label ?? "";
+    aiReaction ??
+    getCharacterVoice(characterId).responseLines[normalizeFeelingId(feelingId)];
+  const feelingText = feelingDisplayLabel(feelingId);
   const minutes = toMinutes(elapsedSeconds);
   const clarityLine = clarityDoneLine(reflectionClarity);
 

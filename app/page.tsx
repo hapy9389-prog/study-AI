@@ -18,8 +18,10 @@ import TodayStudyHeader from "@/components/home/TodayStudyHeader";
 import MyRoomScreen from "@/components/room/MyRoomScreen";
 import CharacterCustomization from "@/components/customization/CharacterCustomization";
 import CharacterSelectScreen from "@/components/character/CharacterSelectScreen";
+import StudyMoodDebugPanel from "@/components/dev/StudyMoodDebugPanel";
 import { DEFAULT_CHARACTER_ID, type CharacterId } from "@/lib/characters";
 import { getCharacterVoice } from "@/lib/characterVoice";
+import { normalizeFeelingId } from "@/lib/mockData";
 import {
   hasExistingStudyData,
   loadSelectedCharacterId,
@@ -215,7 +217,7 @@ export default function Home() {
       const finalReaction =
         aiReaction ??
         getCharacterVoice(selectedCharacterId ?? DEFAULT_CHARACTER_ID)
-          .responseLines[feelingId];
+          .responseLines[normalizeFeelingId(feelingId)];
       const record = createStudyRecord({
         subject: session.subject,
         targetMinutes: session.targetMinutes,
@@ -464,6 +466,11 @@ export default function Home() {
                 dispatch({ type: "DEBUG_SET_ELAPSED", elapsedSeconds })
               }
             />
+          )}
+
+          {/* 개발 전용 — 최근 공부 감정 패턴 감지 디버그. production 빌드에서 제거됨. */}
+          {process.env.NODE_ENV === "development" && state.phase === "idle" && (
+            <StudyMoodDebugPanel />
           )}
 
           {state.phase === "reaction" && state.studySession && (

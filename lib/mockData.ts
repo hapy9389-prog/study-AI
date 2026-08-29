@@ -3,17 +3,55 @@
 // from the user (see lib/types.ts StudySession), fed into the template
 // functions below.
 
-import type { ReactionData, MemoryResult, ReflectionEvidence } from "./types";
+import type {
+  FeelingSemantic,
+  ReactionData,
+  MemoryResult,
+  ReflectionEvidence,
+} from "./types";
 
 export const moodBadges: string[] = ["호기심 많음", "오늘도 배우고 싶음", "나를 믿고 있음"];
 
+// 공부 후 감정 3단계 축. 칩 순서 = 이 배열 순서. UI 에 "긍정/중립/부정" 이라고
+// 표기하지 않는다 — 아래 라벨(감성 copy)만 보인다.
 export const reactionData: ReactionData = {
   choices: [
-    { id: "proud", label: "뿌듯해" },
-    { id: "tired", label: "조금 힘들었어" },
-    { id: "fun", label: "재밌었어" },
+    { id: "positive", label: "좋았어" },
+    { id: "neutral", label: "그럭저럭이었어" },
+    { id: "negative", label: "힘들었어" },
   ],
 };
+
+// 감정 3단계 도입 이전 기록에 저장돼 있는 legacy id → 원래 라벨.
+// 마이그레이션하지 않는다 — Memory 화면에서 그때 고른 그대로 보여준다.
+const LEGACY_FEELING_LABELS: Record<string, string> = {
+  proud: "뿌듯해",
+  tired: "조금 힘들었어",
+  fun: "재밌었어",
+};
+
+// legacy id → 3단계 semantic. 패턴 감지(lib/studyMood.ts)는 이 값으로만 판단한다.
+// "fun"/"proud" 는 둘 다 non-negative 라 positive 로 합친다(감지 목적상 안전).
+// 표시에는 이 함수를 쓰지 않는다 — 표시는 feelingDisplayLabel() 이 legacy 라벨을 유지.
+const LEGACY_FEELING_SEMANTIC: Record<string, FeelingSemantic> = {
+  proud: "positive",
+  fun: "positive",
+  tired: "negative",
+};
+
+export function normalizeFeelingId(feelingId: string): FeelingSemantic {
+  if (feelingId === "positive" || feelingId === "neutral" || feelingId === "negative") {
+    return feelingId;
+  }
+  return LEGACY_FEELING_SEMANTIC[feelingId] ?? "neutral";
+}
+
+// id(신규 또는 legacy) → 화면에 보여줄 한글 라벨. 알 수 없는 값은 "".
+export function feelingDisplayLabel(feelingId: string): string {
+  const current = reactionData.choices.find((choice) => choice.id === feelingId);
+  if (current) return current.label;
+  return LEGACY_FEELING_LABELS[feelingId] ?? "";
+}
 
 export const memoryResult: MemoryResult = {
   nextStudyNudge: "내일도 같이 공부해볼까?",

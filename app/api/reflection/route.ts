@@ -1,5 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { reactionData, toMinutes } from "@/lib/mockData";
+import { feelingDisplayLabel, toMinutes } from "@/lib/mockData";
 import {
   DEFAULT_CHARACTER_ID,
   getCharacterName,
@@ -47,10 +47,6 @@ ${persona}
 출력은 네가 실제로 물어볼 질문 한 문장만. 따옴표나 설명은 붙이지 않는다.`;
 }
 
-const FEELING_LABELS: Record<string, string> = Object.fromEntries(
-  reactionData.choices.map((choice) => [choice.id, choice.label]),
-);
-
 function readableDuration(elapsedSeconds: number): string {
   if (elapsedSeconds < 60) return `${elapsedSeconds}초`;
   return `${toMinutes(elapsedSeconds)}분`;
@@ -78,7 +74,9 @@ function sanitizeRecentMemories(value: unknown): StudyMemoryContext[] {
     ) {
       continue;
     }
-    if (typeof m.feelingId !== "string" || !(m.feelingId in FEELING_LABELS)) continue;
+    // 신규 3단계 id 든 구 기록의 legacy id 든 라벨이 있으면 통과.
+    if (typeof m.feelingId !== "string" || feelingDisplayLabel(m.feelingId) === "")
+      continue;
     if (typeof m.completedAt !== "string" || m.completedAt.length > 40) continue;
     if (Number.isNaN(Date.parse(m.completedAt))) continue;
 
@@ -117,7 +115,7 @@ export async function POST(request: Request): Promise<Response> {
   ) {
     return badRequest("invalid_elapsedSeconds");
   }
-  if (typeof feelingId !== "string" || !(feelingId in FEELING_LABELS)) {
+  if (typeof feelingId !== "string" || feelingDisplayLabel(feelingId) === "") {
     return badRequest("invalid_feelingId");
   }
 
@@ -146,7 +144,7 @@ export async function POST(request: Request): Promise<Response> {
     "[이번 공부 세션]",
     `공부 주제: ${clampSubject(subject)}`,
     `실제 공부 시간: ${readableDuration(elapsedSeconds)}`,
-    `사용자의 감상: ${FEELING_LABELS[feelingId]}`,
+    `사용자의 감상: ${feelingDisplayLabel(feelingId)}`,
   ].join("\n");
 
   // 구체적 날짜(completedAt)는 프롬프트에 넣지 않는다 — 순서(1번이 가장 최근)만.
@@ -160,7 +158,7 @@ export async function POST(request: Request): Promise<Response> {
               `${i + 1}.`,
               `공부 주제: ${m.subject}`,
               `실제 공부 시간: ${readableDuration(m.elapsedSeconds)}`,
-              `그때 감상: ${FEELING_LABELS[m.feelingId]}`,
+              `그때 감상: ${feelingDisplayLabel(m.feelingId)}`,
             ].join("\n"),
           )
           .join("\n\n");

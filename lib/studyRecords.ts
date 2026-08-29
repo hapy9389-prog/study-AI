@@ -2,8 +2,8 @@
 // 저장 + 조회만 담당한다. 삭제/수정/검색/통계는 없다.
 // 새 공부 반응 생성 시 최근 일부(loadRecentMemories)를 Claude prompt에 함께 넘긴다.
 
-import type { FeelingChoice, StudyMemoryContext, StudyRecord } from "./types";
-import { reactionData } from "./mockData";
+import type { StudyMemoryContext, StudyRecord } from "./types";
+import { feelingDisplayLabel, reactionData } from "./mockData";
 import { DEFAULT_CHARACTER_ID, isCharacterId, type CharacterId } from "./characters";
 
 const STUDY_RECORDS_STORAGE_KEY = "study-ai:study-records";
@@ -18,7 +18,14 @@ export const RECENT_RECORDS_LIMIT = 20;
 // 프롬프트/비용을 작게 유지한다(서버도 같은 수로 다시 자른다).
 export const PROMPT_MEMORY_LIMIT = 5;
 
-const FEELING_IDS = new Set<string>(reactionData.choices.map((choice) => choice.id));
+// 로드 검증용 화이트리스트 — 신규 3단계 id + 구 기록의 legacy id 3개.
+// legacy 를 포함하지 않으면 isStudyRecord 가 구 기록을 통째로 버려 전체 기록이 소실된다.
+const KNOWN_FEELING_IDS = new Set<string>([
+  ...reactionData.choices.map((choice) => choice.id),
+  "proud",
+  "tired",
+  "fun",
+]);
 
 function generateRecordId(): string {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
@@ -56,7 +63,7 @@ function isStudyRecord(value: unknown): value is StudyRecord {
     typeof r.targetMinutes === "number" &&
     typeof r.elapsedSeconds === "number" &&
     typeof r.feelingId === "string" &&
-    FEELING_IDS.has(r.feelingId) &&
+    KNOWN_FEELING_IDS.has(r.feelingId) &&
     typeof r.characterReaction === "string" &&
     typeof r.completedAt === "string" &&
     // 캐릭터 선택 이전 기록엔 없다. 없거나(구 기록) 유효한 id 면 통과.
@@ -122,8 +129,9 @@ export function loadRecentMemories(characterId?: CharacterId): StudyMemoryContex
   }));
 }
 
-export function feelingLabel(feelingId: FeelingChoice["id"]): string {
-  return reactionData.choices.find((choice) => choice.id === feelingId)?.label ?? "";
+// 신규 id 든 구 기록의 legacy id 든 화면에 보여줄 한글 라벨로.
+export function feelingLabel(feelingId: string): string {
+  return feelingDisplayLabel(feelingId);
 }
 
 // ISO 문자열을 사람이 읽기 좋은 형태로. "오늘 23:12" / "어제 20:30" / "8월 25일 15:30".

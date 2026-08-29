@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import PostStudyCharacter from "@/components/character/PostStudyCharacter";
 import { reactionData, toMinutes } from "@/lib/mockData";
 import { loadRecentMemories } from "@/lib/studyRecords";
+import { evaluateMoodCheck, saveMoodCheckState } from "@/lib/studyMood";
 import {
   characterNickname,
   characterSubject,
@@ -61,6 +62,14 @@ export default function CharacterReaction({
   const [closingLine, setClosingLine] = useState("");
   const [isFinishing, setIsFinishing] = useState(false);
 
+  // 최근 공부 감정 패턴 감지(cooldown 통과 시에만). finishing step 에서 평소 마무리
+  // 대신 조심스러운 확인 + [괜찮아]/[조금 힘들어] 2지선다를 보여준다.
+  //   moodPhase: none  — 패턴 없음/쿨다운 → 기존 흐름 그대로
+  //              ask   — 확인 문구 + 2버튼
+  //              reply — 사용자가 답한 뒤 짧은 수용 문구 + [오늘 공부 마무리]
+  const [moodPhase, setMoodPhase] = useState<"none" | "ask" | "reply">("none");
+  const [moodReplyLine, setMoodReplyLine] = useState("");
+
   // evidence 는 내부 판단값이다 — 아래 dev 표시 외에는 사용자에게 보이지 않는다.
   const [evidence, setEvidence] = useState<ReflectionEvidence | null>(null);
   const [assessmentFallback, setAssessmentFallback] = useState(false);
@@ -92,6 +101,7 @@ export default function CharacterReaction({
       followUpAnswer?: string;
     },
     reflectionClarity?: ReflectionEvidence,
+    moodSignal = false,
   ): Promise<string> => {
     const recentMemories = loadRecentMemories(characterId);
     try {
@@ -107,6 +117,7 @@ export default function CharacterReaction({
           recentMemories,
           reflection,
           ...(reflectionClarity ? { reflectionClarity } : {}),
+          ...(moodSignal ? { recentStudyMoodSignal: true } : {}),
         }),
       });
       if (response.ok) {
@@ -121,7 +132,10 @@ export default function CharacterReaction({
     } catch (error) {
       console.error("[CharacterReaction] /api/reaction 호출 오류:", error);
     }
-    return voice.closingLine(subject, reflectionClarity);
+    // mood check 상황이면 마무리 문구 대신 조심스러운 확인 문구를 fallback 으로.
+    return moodSignal
+      ? voice.moodCheck.ask
+      : voice.closingLine(subject, reflectionClarity);
   };
 
   // 1) 감상 선택 → 회고 질문 생성. 요청 중 다른 칩 재선택 금지.
@@ -223,11 +237,15 @@ export default function CharacterReaction({
       // 실패해서 clear 로 흘려보낸 경우(usedFallback)는 판정 없음 → null.
       const clarity: ReflectionEvidence | null = usedFallback ? null : "clear";
       setClarityResult(clarity);
+      // 최근 공부 감정 패턴 확인 여부(cooldown 포함). feelingId 는 위에서 non-null 확인됨.
+      const mood = evaluateMoodCheck(feelingId);
       const closing = await fetchClosingLine(
         { question, answer: trimmed },
         clarity ?? undefined,
+        mood.shouldPrompt,
       );
       setClosingLine(closing);
+      if (mood.shouldPrompt) setMoodPhase("ask");
       setStep("finishing");
     } else {
       // 이 분기는 assessment 가 실제로 partial/unclear 를 반환했을 때만 온다.
@@ -290,6 +308,8 @@ export default function CharacterReaction({
     setEvidence(finalEv);
     setClarityResult(finalEv);
 
+    // 최근 공부 감정 패턴 확인 여부(cooldown 포함). feelingId 는 위에서 non-null 확인됨.
+    const mood = evaluateMoodCheck(feelingId);
     const closing = await fetchClosingLine(
       {
         question,
@@ -298,8 +318,10 @@ export default function CharacterReaction({
         followUpAnswer: trimmed,
       },
       finalEv,
+      mood.shouldPrompt,
     );
     setClosingLine(closing);
+    if (mood.shouldPrompt) setMoodPhase("ask");
     setStep("finishing");
     setIsLoading(false);
     busyRef.current = false;
@@ -310,7 +332,25 @@ export default function CharacterReaction({
     if (submittedRef.current || feelingId === null) return;
     submittedRef.current = true;
     setIsFinishing(true);
-    onSelectFeeling(feelingId, closingLine, clarityResult ?? undefined);
+    // mood check 을 거쳤으면 done 화면/Memory 에 남길 문장은 확인 질문이 아니라
+    // 사용자의 답에 대한 짧은 수용 문구다.
+    const finalLine =
+      moodPhase === "reply" && moodReplyLine ? moodReplyLine : closingLine;
+    onSelectFeeling(feelingId, finalLine, clarityResult ?? undefined);
+  };
+
+  // 3.5) mood check 응답 → 짧은 수용 문구 + cooldown 기록. 이후 [오늘 공부 마무리].
+  //      조언·계획 변경·reward 변화 없음. 저장 경로(onSelectFeeling)는 그대로.
+  const handleMoodReply = (outcome: "ok" | "hard") => {
+    if (moodPhase !== "ask") return;
+    saveMoodCheckState({
+      lastPromptedAt: new Date().toISOString(),
+      lastOutcome: outcome,
+    });
+    setMoodReplyLine(
+      outcome === "ok" ? voice.moodCheck.acceptOk : voice.moodCheck.acceptHard,
+    );
+    setMoodPhase("reply");
   };
 
   // 상단 작은 캐릭터 + 이름. 입력 단계에서는 작게(sm) 줄여 textarea 를 위로 올린다.
@@ -352,6 +392,7 @@ export default function CharacterReaction({
         {assessmentFallback ? " (fallback)" : ""}
         {followUpQuestion ? " · follow-up: yes" : ""}
         {` · saved clarity: ${clarityResult ?? "none"}`}
+        {moodPhase !== "none" ? ` · mood-check: ${moodPhase}` : ""}
       </p>
     ) : null;
 
@@ -448,6 +489,52 @@ export default function CharacterReaction({
     return loadingView(
       `${characterSubject(characterId)} 오늘 공부를 떠올리고 있어요...`,
     );
+
+  // 최근 공부 감정 패턴이 감지됨 — 마무리 전에 조심스럽게 한 번만 확인한다.
+  if (moodPhase === "ask") {
+    return (
+      <section className="flex flex-col items-center gap-4 px-6 pt-2">
+        {characterHeader("md", "curious")}
+        <div className="daon-bubble w-full max-w-[300px]">{closingLine}</div>
+        <div className="flex flex-wrap justify-center gap-2">
+          <button
+            type="button"
+            onClick={() => handleMoodReply("ok")}
+            className="chip"
+          >
+            괜찮아
+          </button>
+          <button
+            type="button"
+            onClick={() => handleMoodReply("hard")}
+            className="chip"
+          >
+            조금 힘들어
+          </button>
+        </div>
+        {devEvidenceLine}
+      </section>
+    );
+  }
+
+  // mood check 에 답한 뒤: 짧은 수용 문구 + 마무리.
+  if (moodPhase === "reply") {
+    return (
+      <section className="flex flex-col items-center gap-4 px-6 pt-2">
+        {characterHeader("md", "happy")}
+        <div className="daon-bubble w-full max-w-[300px]">{moodReplyLine}</div>
+        <button
+          type="button"
+          disabled={isFinishing}
+          onClick={handleFinish}
+          className="btn-primary"
+        >
+          오늘 공부 마무리
+        </button>
+        {devEvidenceLine}
+      </section>
+    );
+  }
 
   return (
     <section className="flex flex-col items-center gap-4 px-6 pt-2">

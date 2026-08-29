@@ -17,8 +17,14 @@ export interface StudySession {
   elapsedSeconds?: number;
 }
 
+// 공부 후 감정 3단계 축. 내부 semantic 의미는 positive/neutral/negative 로 통일한다
+// (UI 에 "긍정/중립/부정" 이라고 직접 표기하지 않는다 — 사용자에겐 감성 copy 만 보인다).
+// 구 기록의 legacy id("proud"/"tired"/"fun")는 저장/마이그레이션하지 않고, 읽을 때
+// normalizeFeelingId() 로 흡수한다(lib/mockData.ts). 표시는 원래 라벨을 유지한다.
+export type FeelingSemantic = "positive" | "neutral" | "negative";
+
 export interface FeelingChoice {
-  id: "proud" | "tired" | "fun";
+  id: FeelingSemantic;
   label: string;
 }
 

@@ -1,5 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { reactionData, toMinutes } from "@/lib/mockData";
+import { feelingDisplayLabel, toMinutes } from "@/lib/mockData";
 import {
   characterSubject,
   DEFAULT_CHARACTER_ID,
@@ -38,7 +38,25 @@ function clampReflectionText(value: string): string {
   return value.trim().slice(0, MAX_REFLECTION_TEXT_LENGTH);
 }
 
-function buildSystemPrompt(name: string, persona: string, age: number): string {
+// 최근 공부 감정 패턴(negative 반복)이 감지됐을 때만 붙는 블록. deterministic rule
+// 로 판단된 signal 이고, LLM 에게 판단을 시키지 않는다 — 여기서는 persona 말투로
+// "관찰 → 조심스러운 확인" 한 줄을 만들게만 한다.
+const MOOD_CHECK_BLOCK = `
+[요즘 상태 확인 — 이번 반응에서만, 아래 규칙보다 우선한다]
+- 최근 공부를 마친 뒤 "힘들었어" 같은 답이 자주 나왔다. 이건 앱이 계산한 신호일 뿐 진단이 아니다.
+- "슬럼프", "번아웃", "우울", "정신적으로 힘든 상태", "지쳤어" 같은 판정·의료 표현은 절대 쓰지 않는다.
+- 조언하거나 계획을 바꾸라고 하지 않는다. 관찰 한 마디 + 조심스러운 확인 질문 한 마디로만 끝낸다.
+  예) "요즘 공부가 조금 버겁게 느껴지는 날이 많았네. 괜찮아?" 정도의 결. 이 예문을 그대로 쓰지 말고 네 말투로 새로 만든다.
+- 이번 마무리 문장은 이 확인 하나로 대체한다(평소 마무리 문구는 생략). 물음표로 끝낸다.
+- 예전에 비슷하게 물었을 수도 있다. 그래도 이번 한 번만 담담하게 확인하고, 다그치듯 반복하지 않는다.
+- 이 경우에 한해 "되묻지 않는다" 규칙은 적용하지 않는다.`;
+
+function buildSystemPrompt(
+  name: string,
+  persona: string,
+  age: number,
+  moodSignal: boolean,
+): string {
   return `너는 "${name}"이다. ${age}살이고, 사용자를 가르치는 선생님이 아니라 곁에서 함께 공부하는 작은 동반자다.
 사용자가 공부를 마치면, 아래 주어지는 "이번 공부 세션"과, 함께 주어질 수 있는 "최근 함께한 공부 기록"을 바탕으로 ${name}의 목소리로 짧게 반응한다.
 
@@ -110,14 +128,9 @@ ${persona}
 - 사용자가 구체적으로 어떻게 공부했는지(무엇을 다시 읽었는지, 어떻게 풀었는지)는 모른다. 지어내지 않는다.
 - 반응 끝에 "어땠어?", "어떤 게 제일 힘들었어?"처럼 되묻지 않는다. 너는 답을 들으려는 게 아니라 같이 있었던 걸 말한다.
 - 질문을 연달아 하거나 긴 대화를 유도하지 않는다.
-
+${moodSignal ? MOOD_CHECK_BLOCK : ""}
 출력은 네가 실제로 말할 문장만. 따옴표나 설명은 붙이지 않는다.`;
 }
-
-// mockData의 감상 선택지를 단일 출처로 삼아 id→한글 라벨을 만든다.
-const FEELING_LABELS: Record<string, string> = Object.fromEntries(
-  reactionData.choices.map((choice) => [choice.id, choice.label]),
-);
 
 // elapsedSeconds를 사람이 읽기 좋은 형태로. 60초 미만은 "N초", 그 이상은 "N분".
 function readableDuration(elapsedSeconds: number): string {
@@ -161,7 +174,9 @@ function sanitizeRecentMemories(value: unknown): StudyMemoryContext[] {
     ) {
       continue;
     }
-    if (typeof m.feelingId !== "string" || !(m.feelingId in FEELING_LABELS)) continue;
+    // 신규 3단계 id 든 구 기록의 legacy id 든 라벨이 있으면 통과(feelingDisplayLabel).
+    if (typeof m.feelingId !== "string" || feelingDisplayLabel(m.feelingId) === "")
+      continue;
     // completedAt: 문자열 + 길이 상한 + 실제 파싱 가능한 날짜인지 확인. 아니면 제외.
     if (typeof m.completedAt !== "string" || m.completedAt.length > 40) continue;
     if (Number.isNaN(Date.parse(m.completedAt))) continue;
@@ -217,9 +232,13 @@ export async function POST(request: Request): Promise<Response> {
   ) {
     return badRequest("invalid_elapsedSeconds");
   }
-  if (typeof feelingId !== "string" || !(feelingId in FEELING_LABELS)) {
+  if (typeof feelingId !== "string" || feelingDisplayLabel(feelingId) === "") {
     return badRequest("invalid_feelingId");
   }
+
+  // 최근 공부 감정 패턴 신호(클라이언트에서 deterministic rule + cooldown 으로 판단).
+  const recentStudyMoodSignal =
+    (body as Record<string, unknown>).recentStudyMoodSignal === true;
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
@@ -239,6 +258,7 @@ export async function POST(request: Request): Promise<Response> {
     characterName,
     persona.reactionPersona,
     persona.age,
+    recentStudyMoodSignal,
   );
 
   const recentMemories = sanitizeRecentMemories(
@@ -250,7 +270,7 @@ export async function POST(request: Request): Promise<Response> {
     `공부 주제: ${clampSubject(subject)}`,
     `목표 공부 시간: ${targetMinutes}분`,
     `실제 공부 시간: ${readableDuration(elapsedSeconds)}`,
-    `사용자의 감상: ${FEELING_LABELS[feelingId]}`,
+    `사용자의 감상: ${feelingDisplayLabel(feelingId)}`,
   ].join("\n");
 
   // 기억이 0개면 섹션 자체를 생략 — 기존(현재 세션만 보고 반응)과 동일하게 동작한다.
@@ -266,7 +286,7 @@ export async function POST(request: Request): Promise<Response> {
               `${i + 1}.`,
               `공부 주제: ${m.subject}`,
               `실제 공부 시간: ${readableDuration(m.elapsedSeconds)}`,
-              `그때 감상: ${FEELING_LABELS[m.feelingId]}`,
+              `그때 감상: ${feelingDisplayLabel(m.feelingId)}`,
               ...(m.reflectionClarity
                 ? [`그때 회고: ${CLARITY_LABELS[m.reflectionClarity]}`]
                 : []),
