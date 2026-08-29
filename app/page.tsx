@@ -14,6 +14,7 @@ import FriendRoomScreen from "@/components/friends/FriendRoomScreen";
 import SocialCheckInScreen from "@/components/social/SocialCheckInScreen";
 import StudyStatsScreen from "@/components/stats/StudyStatsScreen";
 import MyRoom from "@/components/room/MyRoom";
+import TodayStudyHeader from "@/components/home/TodayStudyHeader";
 import MyRoomScreen from "@/components/room/MyRoomScreen";
 import CharacterCustomization from "@/components/customization/CharacterCustomization";
 import CharacterSelectScreen from "@/components/character/CharacterSelectScreen";
@@ -402,6 +403,14 @@ export default function Home() {
         </div>
       ) : (
         <>
+          {/* idle 최상단 "오늘의 공부" 한 줄. Hero 위에서 composition 을 아래로
+              내리고 오늘 함께한 시간만 조용히 알린다. Hero 보다 시각적으로 약하게. */}
+          {state.phase === "idle" && (
+            <div className="mb-1">
+              <TodayStudyHeader />
+            </div>
+          )}
+
           {/* idle 상단 Hero 방(캐릭터가 방 안에 있는 모습). studying 은 위쪽 별도
               분기에서 자체 CharacterArea 를 그린다. reaction / done 은 각 화면이
               직접 작은 캐릭터(PostStudyCharacter)를 둔다. */}
