@@ -1,6 +1,6 @@
 "use client";
 
-import { useReducer, useRef, useState } from "react";
+import { useEffect, useReducer, useRef, useState } from "react";
 import MobileLayout from "@/components/layout/MobileLayout";
 import type { NavTab } from "@/components/layout/BottomNavigation";
 import CharacterArea from "@/components/character/CharacterArea";
@@ -18,7 +18,14 @@ import MyRoom from "@/components/room/MyRoom";
 import MyRoomScreen from "@/components/room/MyRoomScreen";
 import RewardResultCard from "@/components/room/RewardResultCard";
 import CharacterCustomization from "@/components/customization/CharacterCustomization";
-import { memoryResult } from "@/lib/mockData";
+import CharacterSelectScreen from "@/components/character/CharacterSelectScreen";
+import { DEFAULT_CHARACTER_ID, type CharacterId } from "@/lib/characters";
+import { getCharacterVoice } from "@/lib/characterVoice";
+import {
+  hasExistingStudyData,
+  loadSelectedCharacterId,
+  saveSelectedCharacterId,
+} from "@/lib/selectedCharacter";
 import { getFriendRoomProfile, getFriendStudyStatuses } from "@/lib/mockFriends";
 import {
   equipAccessory,
@@ -119,6 +126,43 @@ export default function Home() {
   const [state, dispatch] = useReducer(reducer, initialState);
   const [tab, setTab] = useState<NavTab>("home");
 
+  // 선택된 공부 동반자. localStorage 는 클라이언트에서만 읽을 수 있어, SSR/최초
+  // hydration 에서는 항상 "확인 전"(BootSplash)으로 렌더하고 useEffect 에서 해석한다
+  // — early-return 트리가 서버/클라 사이에서 갈라지지 않게 하기 위함.
+  //   저장된 값 있음        → 그 캐릭터
+  //   없음 + 기존 공부 데이터 → 다온으로 자동 매핑(기존 사용자, 선택 화면 안 봄)
+  //   없음 + 데이터 없음      → 신규 사용자, 선택 화면
+  // { checked, id } 를 한 번에 갱신한다. effect 본문에서 직접 setState 하면
+  // react-hooks/set-state-in-effect 에 걸리므로 setTimeout(0) 으로 미룬다
+  // (SocialCheckInScreen 과 같은 패턴).
+  const [characterResolution, setCharacterResolution] = useState<{
+    checked: boolean;
+    id: CharacterId | null;
+  }>({ checked: false, id: null });
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      const saved = loadSelectedCharacterId();
+      if (saved) {
+        setCharacterResolution({ checked: true, id: saved });
+      } else if (hasExistingStudyData()) {
+        saveSelectedCharacterId(DEFAULT_CHARACTER_ID);
+        setCharacterResolution({ checked: true, id: DEFAULT_CHARACTER_ID });
+      } else {
+        setCharacterResolution({ checked: true, id: null });
+      }
+    }, 0);
+    return () => clearTimeout(t);
+  }, []);
+
+  const { checked: characterChecked, id: selectedCharacterId } =
+    characterResolution;
+
+  const handlePickCharacter = (id: CharacterId) => {
+    saveSelectedCharacterId(id);
+    setCharacterResolution({ checked: true, id });
+  };
+
   // 앱 첫 진입에서만 보여주는 Social Check-in 진입 화면. 순수 UI state 로,
   // localStorage 에 저장하지 않는다 — 새로고침하면 다시 보여도 된다. 같은 세션
   // 안에서는 reducer state 와 분리돼 있어 RESET 등으로 다시 나타나지 않는다.
@@ -134,6 +178,8 @@ export default function Home() {
   );
   const [rewardState, setRewardState] = useState(() => loadStudyRewardState());
   const [showCustomization, setShowCustomization] = useState(false);
+  // "내 공부 친구" 화면에서 여는 캐릭터 변경 화면. idle 에서만(세션 중 변경 방지).
+  const [showCharacterSelect, setShowCharacterSelect] = useState(false);
 
   // 친구 공간 / 내 공간 전체 화면. 새 ViewState 없이 순수 UI state 로 홈을 대체한다
   // (CharacterCustomization 와 같은 early-return). idle 에서만 진입 가능.
@@ -162,13 +208,16 @@ export default function Home() {
       recordSavedRef.current = true;
       // done 화면에서 실제로 보여줄 최종 문장. Claude 성공/실패 모두 이 값을 저장한다.
       const finalReaction =
-        aiReaction ?? memoryResult.responseLines[feelingId];
+        aiReaction ??
+        getCharacterVoice(selectedCharacterId ?? DEFAULT_CHARACTER_ID)
+          .responseLines[feelingId];
       const record = createStudyRecord({
         subject: session.subject,
         targetMinutes: session.targetMinutes,
         elapsedSeconds: session.elapsedSeconds ?? 0,
         feelingId,
         characterReaction: finalReaction,
+        characterId: selectedCharacterId ?? DEFAULT_CHARACTER_ID,
       });
       saveStudyRecord(record);
       // StudyRecord 하나가 완성되는 바로 이 시점에 성장 상태도 한 번만 갱신한다.
@@ -243,14 +292,46 @@ export default function Home() {
     setShowMyRoomScreen(true);
   };
 
+  // SSR/최초 렌더는 항상 여기 — 캐릭터 해석이 끝나기 전. 빈 cream 컬럼(한 프레임).
+  if (!characterChecked) {
+    return (
+      <div className="flex min-h-screen w-full justify-center bg-warm-gray/10">
+        <div className="min-h-screen w-full max-w-[430px] bg-cream shadow-[var(--shadow-lift)]" />
+      </div>
+    );
+  }
+
+  // 아직 동반자를 고른 적 없는 신규 사용자 → 다른 어떤 화면보다 먼저 선택 화면.
+  if (selectedCharacterId === null) {
+    return <CharacterSelectScreen onSelect={handlePickCharacter} />;
+  }
+
+  // 캐릭터 변경 화면. idle 에서만 — studying/reaction/done 중에는 진입점
+  // 자체가 없지만(아래 참고), 방어적으로 phase 도 확인한다. 세션 상태는 안 만든다.
+  if (showCharacterSelect && state.phase === "idle") {
+    return (
+      <CharacterSelectScreen
+        mode="change"
+        currentCharacterId={selectedCharacterId}
+        onSelect={(id) => {
+          handlePickCharacter(id);
+          setShowCharacterSelect(false);
+        }}
+        onCancel={() => setShowCharacterSelect(false)}
+      />
+    );
+  }
+
   if (showCustomization) {
     return (
       <CharacterCustomization
+        characterId={selectedCharacterId}
         coins={rewardState.coins}
         customization={customization}
         onPurchase={handlePurchase}
         onEquip={handleEquip}
         onUnequip={handleUnequip}
+        onOpenCharacterSelect={() => setShowCharacterSelect(true)}
         onBack={() => setShowCustomization(false)}
       />
     );
@@ -282,6 +363,7 @@ export default function Home() {
   if (showMyRoomScreen) {
     return (
       <MyRoomScreen
+        characterId={selectedCharacterId}
         rewardState={rewardState}
         equippedAccessoryId={customization.equippedAccessoryId}
         todayStudyMinutes={myTodayStudyMinutes}
@@ -300,6 +382,7 @@ export default function Home() {
         <div className="flex flex-1 flex-col items-center justify-center gap-6 px-6 py-4">
           <CharacterArea
             phase="studying"
+            characterId={selectedCharacterId}
             equippedAccessoryId={customization.equippedAccessoryId}
           />
           <StudyCard
@@ -319,6 +402,7 @@ export default function Home() {
         <>
           <CharacterArea
             phase={state.phase}
+            characterId={selectedCharacterId}
             roomStage={rewardState.roomStage}
             equippedAccessoryId={customization.equippedAccessoryId}
           />
@@ -375,6 +459,7 @@ export default function Home() {
 
           {state.phase === "reaction" && state.studySession && (
             <CharacterReaction
+              characterId={selectedCharacterId}
               studySession={state.studySession}
               onSelectFeeling={handleSelectFeeling}
             />
@@ -383,6 +468,7 @@ export default function Home() {
           {state.phase === "done" && state.studySession && state.selectedFeelingId && (
             <>
               <StudyMemoryCard
+                characterId={selectedCharacterId}
                 studySession={state.studySession}
                 feelingId={state.selectedFeelingId}
                 aiReaction={state.aiReaction}

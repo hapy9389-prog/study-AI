@@ -1,13 +1,16 @@
 import CharacterFace from "./CharacterFace";
 import type { CharacterAccessoryId, Expression } from "@/lib/types";
+import type { CharacterId } from "@/lib/characters";
 
 export type SceneKind = "resting" | "studying";
 
 interface CharacterSceneProps {
   scene: SceneKind;
   expression: Expression;
-  /** 장착된 액세서리(있으면). 다온을 그리는 모든 씬에서 일관되게 전달된다. */
+  /** 장착된 액세서리(있으면). 캐릭터를 그리는 모든 씬에서 일관되게 전달된다. */
   accessoryId?: CharacterAccessoryId | null;
+  /** 현재 선택된 동반자. 생략 시 다온. */
+  characterId?: CharacterId;
 }
 
 // Placeholder scenery — 실제 캐릭터 아트 asset이 아직 없어서, 기존 순수 CSS/SVG
@@ -20,6 +23,7 @@ export default function CharacterScene({
   scene,
   expression,
   accessoryId,
+  characterId,
 }: CharacterSceneProps) {
   // 시그니처 "함께 있는 불빛" — 다온 뒤 따뜻한 빛 번짐. scene 에 따라 크기/세기가
   // 달라진다. 공부 중에만 아주 느리게 호흡한다(prefers-reduced-motion 이면 정지).
@@ -54,7 +58,11 @@ export default function CharacterScene({
         </>
       )}
       <div className="relative z-10 pb-2">
-        <CharacterFace expression={expression} accessoryId={accessoryId} />
+        <CharacterFace
+          expression={expression}
+          accessoryId={accessoryId}
+          characterId={characterId}
+        />
       </div>
     </div>
   );

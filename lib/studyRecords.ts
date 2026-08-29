@@ -4,6 +4,7 @@
 
 import type { FeelingChoice, StudyMemoryContext, StudyRecord } from "./types";
 import { reactionData } from "./mockData";
+import { DEFAULT_CHARACTER_ID, isCharacterId, type CharacterId } from "./characters";
 
 const STUDY_RECORDS_STORAGE_KEY = "study-ai:study-records";
 
@@ -37,6 +38,13 @@ export function createStudyRecord(
   };
 }
 
+// 기록의 귀속 캐릭터. 캐릭터 선택 이전 기록엔 characterId 가 없으므로 다온으로 본다.
+export function recordCharacterId(record: StudyRecord): CharacterId {
+  return isCharacterId(record.characterId)
+    ? record.characterId
+    : DEFAULT_CHARACTER_ID;
+}
+
 // localStorage에서 온 알 수 없는 값을 StudyRecord로 신뢰하기 전 가벼운 런타임 검증.
 // schema 라이브러리는 쓰지 않는다.
 function isStudyRecord(value: unknown): value is StudyRecord {
@@ -50,7 +58,9 @@ function isStudyRecord(value: unknown): value is StudyRecord {
     typeof r.feelingId === "string" &&
     FEELING_IDS.has(r.feelingId) &&
     typeof r.characterReaction === "string" &&
-    typeof r.completedAt === "string"
+    typeof r.completedAt === "string" &&
+    // 캐릭터 선택 이전 기록엔 없다. 없거나(구 기록) 유효한 id 면 통과.
+    (r.characterId === undefined || isCharacterId(r.characterId))
   );
 }
 
@@ -81,18 +91,24 @@ export function saveStudyRecord(record: StudyRecord): void {
   }
 }
 
-// 새 공부 반응 요청에 함께 보낼 최근 기억. 저장이 최신순(앞이 최신)이라
-// slice로 최근 N개를 그대로 얻는다. loadStudyRecords()가 SSR/깨진 JSON에서
-// []를 돌려주므로 로드 실패 시에도 자연히 []가 된다 — 현재 공부 반응을 막지 않는다.
-export function loadRecentMemories(): StudyMemoryContext[] {
-  return loadStudyRecords()
-    .slice(0, PROMPT_MEMORY_LIMIT)
-    .map((record) => ({
-      subject: record.subject,
-      elapsedSeconds: record.elapsedSeconds,
-      feelingId: record.feelingId,
-      completedAt: record.completedAt,
-    }));
+// 새 공부 반응 요청에 함께 보낼 최근 기억. LLM 에게는 "지금 이 캐릭터가 실제로
+// 곁에 있었던 공부"만 전달한다 — characterId 로 필터한다(다온의 과거를 다른
+// 캐릭터가 자기 경험처럼 말하지 않도록). 전체 목록/통계/Memory 탭은 그대로 공용.
+//
+// characterId 를 넘기지 않으면(구버전 호출) 필터 없이 전체에서 최근 N개 —
+// 기존 동작과 동일.
+export function loadRecentMemories(characterId?: CharacterId): StudyMemoryContext[] {
+  const records = loadStudyRecords();
+  const scoped =
+    characterId === undefined
+      ? records
+      : records.filter((record) => recordCharacterId(record) === characterId);
+  return scoped.slice(0, PROMPT_MEMORY_LIMIT).map((record) => ({
+    subject: record.subject,
+    elapsedSeconds: record.elapsedSeconds,
+    feelingId: record.feelingId,
+    completedAt: record.completedAt,
+  }));
 }
 
 export function feelingLabel(feelingId: FeelingChoice["id"]): string {

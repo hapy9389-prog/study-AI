@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import CharacterFace from "@/components/character/CharacterFace";
+import { DEFAULT_CHARACTER_ID, type CharacterId } from "@/lib/characters";
 import { formatTotalStudyTime } from "@/lib/mockData";
 import { loadStudyRewardState } from "@/lib/studyRewards";
 import type { CharacterAccessoryId, StudyRewardState } from "@/lib/types";
@@ -13,11 +14,13 @@ import type { CharacterAccessoryId, StudyRewardState } from "@/lib/types";
 // 이 컴포넌트는 idle 에서만 렌더되므로 매 공부 세션(→ RESET) 후 새로 마운트되고,
 // 그때 loadStudyRewardState() 로 최신 상태를 읽는다(StudyMemoryList 와 같은 패턴).
 
-// 방 안의 다온. HomeHeroRoom / MyRoomScreen 둘 다 이 형태로 RoomScene 에 넘긴다.
+// 방 안의 동반자. HomeHeroRoom / MyRoomScreen 둘 다 이 형태로 RoomScene 에 넘긴다.
 export function MyRoomCharacter({
+  characterId = DEFAULT_CHARACTER_ID,
   equippedAccessoryId,
   size = "default",
 }: {
+  characterId?: CharacterId;
   equippedAccessoryId: CharacterAccessoryId | null;
   size?: "default" | "hero";
 }) {
@@ -26,7 +29,11 @@ export function MyRoomCharacter({
     <div
       className={`absolute bottom-3 left-1/2 -translate-x-1/2 ${scale} origin-bottom`}
     >
-      <CharacterFace expression="happy" accessoryId={equippedAccessoryId} />
+      <CharacterFace
+        expression="happy"
+        accessoryId={equippedAccessoryId}
+        characterId={characterId}
+      />
     </div>
   );
 }
@@ -36,7 +43,10 @@ interface MyRoomProps {
   onOpenCustomization: () => void;
 }
 
-export default function MyRoom({ onOpenRoom, onOpenCustomization }: MyRoomProps) {
+export default function MyRoom({
+  onOpenRoom,
+  onOpenCustomization,
+}: MyRoomProps) {
   const [state] = useState<StudyRewardState>(() => loadStudyRewardState());
 
   return (
@@ -69,7 +79,7 @@ export default function MyRoom({ onOpenRoom, onOpenCustomization }: MyRoomProps)
           onClick={onOpenCustomization}
           className="btn-secondary flex-1"
         >
-          다온 꾸미기
+          내 공부 친구
         </button>
       </div>
     </section>

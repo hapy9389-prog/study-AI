@@ -1,6 +1,6 @@
 "use client";
 
-// 홈 / 기억 두 탭만 실제로 동작한다. 공부 / 다온이 는 아직 placeholder(비활성).
+// 홈 / 기억 두 탭만 실제로 동작한다. 공부 / 캐릭터 는 아직 placeholder(비활성).
 // navLocked(공부 중 · 감상 선택 중)이면 탭 전환 자체를 막아 공부에 집중하게 한다.
 
 import type { ReactNode } from "react";
@@ -47,7 +47,7 @@ const navItems: NavItem[] = [
     ),
   },
   {
-    label: "다온이",
+    label: "캐릭터",
     icon: (
       <svg {...iconProps}>
         <path d="M12 4c1.5 2 1.5 3.5 0 5.5" />

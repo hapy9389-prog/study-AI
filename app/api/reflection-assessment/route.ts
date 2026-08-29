@@ -1,4 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { DEFAULT_CHARACTER_ID, isCharacterId } from "@/lib/characters";
+import { CHARACTER_PERSONAS } from "@/lib/characterPersonas";
 import type { ReflectionEvidence } from "@/lib/types";
 
 // 회고 답변 분류도 짧다. reaction/reflection 과 같은 소형 모델로 충분하다.
@@ -25,7 +27,8 @@ function badRequest(message: string): Response {
 
 const EVIDENCE_VALUES: readonly ReflectionEvidence[] = ["clear", "partial", "unclear"];
 
-const ASSESSMENT_SYSTEM_PROMPT = `너는 사용자의 공부 성적을 매기는 선생님이 아니다.
+function buildSystemPrompt(followUpTone: string): string {
+  return `너는 사용자의 공부 성적을 매기는 선생님이 아니다.
 사용자가 방금 적은 짧은 공부 회고 답변 안에, "이번 공부 주제(subject)와 관련된 내용의 흔적"이
 얼마나 드러나는지만 세 단계로 분류한다.
 
@@ -54,13 +57,14 @@ const ASSESSMENT_SYSTEM_PROMPT = `너는 사용자의 공부 성적을 매기는
 
 [추가 질문(followUpQuestion)]
 - evidence가 partial 또는 unclear일 때만 만든다. clear면 넣지 않는다.
-- 다온(8살, 가르치는 선생님이 아니라 같이 공부한 친구)의 말투로 짧고 부담 없이. 시험·정답 요구 느낌 없이.
+- ${followUpTone}
   예: "오늘 나온 말이나 개념 하나만 떠오르는 거 있어?", "이름이라도 기억나는 게 있어?", "제일 헷갈렸던 거 하나만 떠올려볼래?"
 - "정확히 설명해봐", "정말 공부했는지 확인할게", "정의를 말해봐" 같은 말은 절대 쓰지 않는다.
 
 반드시 아래 JSON 형식 하나만 출력한다. 코드블록 표시나 다른 설명 없이:
 {"evidence": "clear" | "partial" | "unclear", "followUpQuestion": "..."}
 evidence가 clear면 {"evidence": "clear"} 만 출력한다.`;
+}
 
 // 응답 텍스트에서 JSON 객체만 뽑아 파싱한다. 코드펜스/잡텍스트가 섞여도
 // 첫 '{' ~ 마지막 '}' 구간만 시도한다. 실패하면 null.
@@ -127,6 +131,14 @@ export async function POST(request: Request): Promise<Response> {
     return Response.json({ error: "missing_api_key" }, { status: 503 });
   }
 
+  const rawCharacterId = (body as Record<string, unknown>).characterId;
+  const characterId = isCharacterId(rawCharacterId)
+    ? rawCharacterId
+    : DEFAULT_CHARACTER_ID;
+  const systemPrompt = buildSystemPrompt(
+    CHARACTER_PERSONAS[characterId].assessmentTone,
+  );
+
   const userMessage = [
     `subject: ${clamp(subject, MAX_SUBJECT_LENGTH)}`,
     `question: ${clamp(question, MAX_QUESTION_LENGTH)}`,
@@ -139,7 +151,7 @@ export async function POST(request: Request): Promise<Response> {
       {
         model: ASSESSMENT_MODEL,
         max_tokens: MAX_TOKENS,
-        system: ASSESSMENT_SYSTEM_PROMPT,
+        system: systemPrompt,
         messages: [{ role: "user", content: userMessage }],
       },
       { timeout: REQUEST_TIMEOUT_MS },

@@ -1,17 +1,14 @@
 "use client";
 
 import { useRef, useState } from "react";
-import {
-  reactionData,
-  buildReactionLine,
-  FALLBACK_REFLECTION_QUESTION,
-  FALLBACK_FOLLOWUP_QUESTION,
-  buildFallbackClosingLine,
-} from "@/lib/mockData";
+import { reactionData, toMinutes } from "@/lib/mockData";
 import { loadRecentMemories } from "@/lib/studyRecords";
+import { characterSubject, type CharacterId } from "@/lib/characters";
+import { getCharacterVoice } from "@/lib/characterVoice";
 import type { FeelingChoice, ReflectionEvidence, StudySession } from "@/lib/types";
 
 interface CharacterReactionProps {
+  characterId: CharacterId;
   studySession: StudySession;
   onSelectFeeling: (feelingId: FeelingChoice["id"], aiReaction?: string) => void;
 }
@@ -29,7 +26,11 @@ type ReflectionStep = "feeling" | "reflection" | "followup" | "finishing";
 
 const ANSWER_MAX_LENGTH = 300;
 
-export default function CharacterReaction({ studySession, onSelectFeeling }: CharacterReactionProps) {
+export default function CharacterReaction({
+  characterId,
+  studySession,
+  onSelectFeeling,
+}: CharacterReactionProps) {
   const [step, setStep] = useState<ReflectionStep>("feeling");
   const [isLoading, setIsLoading] = useState(false);
   const [feelingId, setFeelingId] = useState<FeelingChoice["id"] | null>(null);
@@ -48,9 +49,12 @@ export default function CharacterReaction({ studySession, onSelectFeeling }: Cha
   const busyRef = useRef(false);
   const submittedRef = useRef(false);
 
+  const voice = getCharacterVoice(characterId);
   const subject = studySession.subject;
   const elapsedSeconds = studySession.elapsedSeconds ?? 0;
-  const characterLine = buildReactionLine(subject, elapsedSeconds);
+  const togetherPhrase =
+    elapsedSeconds < 60 ? "잠깐" : `${toMinutes(elapsedSeconds)}분 정도`;
+  const characterLine = voice.reactionLine(subject, togetherPhrase);
 
   // /api/reaction 으로 마무리 한마디를 받는다. 실패/타임아웃이면 주제가 들어간
   // 정적 fallback 을 돌려준다 — 흐름을 막지 않는다.
@@ -60,12 +64,13 @@ export default function CharacterReaction({ studySession, onSelectFeeling }: Cha
     followUpQuestion?: string;
     followUpAnswer?: string;
   }): Promise<string> => {
-    const recentMemories = loadRecentMemories();
+    const recentMemories = loadRecentMemories(characterId);
     try {
       const response = await fetch("/api/reaction", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          characterId,
           subject,
           targetMinutes: studySession.targetMinutes,
           elapsedSeconds,
@@ -86,7 +91,7 @@ export default function CharacterReaction({ studySession, onSelectFeeling }: Cha
     } catch (error) {
       console.error("[CharacterReaction] /api/reaction 호출 오류:", error);
     }
-    return buildFallbackClosingLine(subject);
+    return voice.closingLine(subject);
   };
 
   // 1) 감상 선택 → 회고 질문 생성. 요청 중 다른 칩 재선택 금지.
@@ -97,13 +102,19 @@ export default function CharacterReaction({ studySession, onSelectFeeling }: Cha
     setStep("reflection");
     setIsLoading(true);
 
-    const recentMemories = loadRecentMemories();
-    let nextQuestion = FALLBACK_REFLECTION_QUESTION;
+    const recentMemories = loadRecentMemories(characterId);
+    let nextQuestion = voice.reflectionQuestion;
     try {
       const response = await fetch("/api/reflection", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ subject, elapsedSeconds, feelingId: picked, recentMemories }),
+        body: JSON.stringify({
+          characterId,
+          subject,
+          elapsedSeconds,
+          feelingId: picked,
+          recentMemories,
+        }),
       });
       if (response.ok) {
         const data = (await response.json()) as { question?: unknown };
@@ -142,7 +153,7 @@ export default function CharacterReaction({ studySession, onSelectFeeling }: Cha
       const response = await fetch("/api/reflection-assessment", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ subject, question, answer: trimmed }),
+        body: JSON.stringify({ characterId, subject, question, answer: trimmed }),
       });
       if (response.ok) {
         const data = (await response.json()) as {
@@ -182,7 +193,7 @@ export default function CharacterReaction({ studySession, onSelectFeeling }: Cha
       setClosingLine(closing);
       setStep("finishing");
     } else {
-      setFollowUpQuestion(followUp ?? FALLBACK_FOLLOWUP_QUESTION);
+      setFollowUpQuestion(followUp ?? voice.followUpQuestion);
       setAnswer("");
       setStep("followup");
     }
@@ -267,7 +278,10 @@ export default function CharacterReaction({ studySession, onSelectFeeling }: Cha
   }
 
   if (step === "reflection") {
-    if (isLoading) return loadingView("다온이가 오늘 공부를 돌아보고 있어요...");
+    if (isLoading)
+      return loadingView(
+        `${characterSubject(characterId)} 오늘 공부를 돌아보고 있어요...`,
+      );
 
     return (
       <section className="card mx-6 min-h-[168px]">
@@ -293,7 +307,10 @@ export default function CharacterReaction({ studySession, onSelectFeeling }: Cha
   }
 
   if (step === "followup") {
-    if (isLoading) return loadingView("다온이가 오늘 공부를 떠올리고 있어요...");
+    if (isLoading)
+      return loadingView(
+        `${characterSubject(characterId)} 오늘 공부를 떠올리고 있어요...`,
+      );
 
     return (
       <section className="card mx-6 min-h-[168px]">

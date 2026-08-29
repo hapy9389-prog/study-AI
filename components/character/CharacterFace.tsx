@@ -1,4 +1,9 @@
 import type { CharacterAccessoryId, Expression } from "@/lib/types";
+import {
+  DEFAULT_CHARACTER_ID,
+  getCharacter,
+  type CharacterId,
+} from "@/lib/characters";
 
 interface CharacterFaceProps {
   expression: Expression;
@@ -8,6 +13,11 @@ interface CharacterFaceProps {
    * 지금은 CSS placeholder — 나중에 실제 asset 으로 교체할 때 이 파일만 바꾸면 된다.
    */
   accessoryId?: CharacterAccessoryId | null;
+  /**
+   * 어느 동반자의 얼굴인지. 생략 시 다온. 지금은 얼굴색·머리·볼터치 색만 바뀐다
+   * (lib/characters.ts CHARACTER_VISUALS). 실제 일러스트는 나중에.
+   */
+  characterId?: CharacterId;
 }
 
 // No image assets — the face is drawn purely with CSS + a small inline SVG
@@ -80,18 +90,32 @@ function AccessoryOverlay({
 export default function CharacterFace({
   expression,
   accessoryId,
+  characterId = DEFAULT_CHARACTER_ID,
 }: CharacterFaceProps) {
   const showBlush = expression === "happy" || expression === "excited";
+  const { face, hair, blush } = getCharacter(characterId).visual;
 
   return (
-    <div className="relative flex h-32 w-32 items-center justify-center rounded-full bg-peach shadow-[0_8px_24px_-6px_rgb(90_74_63/0.18)]">
+    <div
+      className={`relative flex h-32 w-32 items-center justify-center rounded-full ${face} shadow-[0_8px_24px_-6px_rgb(90_74_63/0.18)]`}
+    >
+      {/* 머리 캡 — 다온(hair: null)은 그리지 않아 기존 렌더와 동일. */}
+      {hair && (
+        <span
+          className={`absolute -top-2 left-1/2 h-10 w-32 -translate-x-1/2 rounded-t-full ${hair}`}
+        />
+      )}
       {showBlush && (
         <>
-          <span className="absolute left-4 top-[68px] h-3 w-4 rounded-full bg-peach-deep/70" />
-          <span className="absolute right-4 top-[68px] h-3 w-4 rounded-full bg-peach-deep/70" />
+          <span
+            className={`absolute left-4 top-[68px] h-3 w-4 rounded-full ${blush}`}
+          />
+          <span
+            className={`absolute right-4 top-[68px] h-3 w-4 rounded-full ${blush}`}
+          />
         </>
       )}
-      <div className="flex flex-col items-center gap-3">
+      <div className="relative flex flex-col items-center gap-3">
         <div className="flex gap-5">
           <span className={eyeStyles[expression]} />
           <span className={eyeStyles[expression]} />

@@ -3,9 +3,12 @@
 import { useState } from "react";
 import RoomScene from "@/components/room/RoomScene";
 import { MyRoomCharacter } from "@/components/room/MyRoom";
+import type { CharacterId } from "@/lib/characters";
 import type { CharacterAccessoryId, RoomStage } from "@/lib/types";
 
 interface HomeHeroRoomProps {
+  /** 현재 선택된 동반자. */
+  characterId: CharacterId;
   /** 현재 방 단계. app/page.tsx 의 rewardState 가 source. */
   roomStage: RoomStage;
   /** 장착된 액세서리. app/page.tsx 의 customization 이 source. */
@@ -14,9 +17,10 @@ interface HomeHeroRoomProps {
 
 const STAGE_PREVIEWS: RoomStage[] = [1, 2, 3];
 
-// 홈 idle 최상단 — "다온이 실제 내 공부방 안에 있는 모습". 표현 전용:
+// 홈 idle 최상단 — "동반자가 실제 내 공부방 안에 있는 모습". 표현 전용:
 // 데이터는 전부 props 로 받고, 여기서 상태 소스를 새로 만들지 않는다.
 export default function HomeHeroRoom({
+  characterId,
   roomStage,
   equippedAccessoryId,
 }: HomeHeroRoomProps) {
@@ -31,6 +35,7 @@ export default function HomeHeroRoom({
         stage={stage}
         character={
           <MyRoomCharacter
+            characterId={characterId}
             equippedAccessoryId={equippedAccessoryId}
             size="hero"
           />

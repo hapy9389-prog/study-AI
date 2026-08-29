@@ -1,5 +1,6 @@
 import CharacterFace from "@/components/character/CharacterFace";
 import ScreenShell from "@/components/layout/ScreenShell";
+import { getCharacter, type CharacterId } from "@/lib/characters";
 import { CHARACTER_ACCESSORIES } from "@/lib/characterCustomization";
 import type {
   CharacterAccessoryId,
@@ -7,15 +8,18 @@ import type {
 } from "@/lib/types";
 
 interface CharacterCustomizationProps {
+  characterId: CharacterId;
   coins: number;
   customization: CharacterCustomizationState;
   onPurchase: (id: CharacterAccessoryId) => void;
   onEquip: (id: CharacterAccessoryId) => void;
   onUnequip: () => void;
+  onOpenCharacterSelect: () => void;
   onBack: () => void;
 }
 
-// 공부로 번 coin 으로 다온 액세서리를 사고 장착하는 화면. SocialCheckInScreen 과
+// "내 공부 친구" 화면. 상단은 현재 동반자(외형/이름/소개 + 다른 친구 선택하기),
+// 아래는 공부로 번 coin 으로 액세서리를 사고 장착하는 기존 기능. SocialCheckInScreen 과
 // 같은 자체 센터드 셸(바텀 네비 없음). 상태 계산/저장은 app/page.tsx 가 하고
 // 여기서는 표시 + 콜백만 한다. 구매 확인 모달 없음 — 클릭 즉시 처리.
 
@@ -57,31 +61,56 @@ function AccessoryPreview({ id }: { id: CharacterAccessoryId }) {
 }
 
 export default function CharacterCustomization({
+  characterId,
   coins,
   customization,
   onPurchase,
   onEquip,
   onUnequip,
+  onOpenCharacterSelect,
   onBack,
 }: CharacterCustomizationProps) {
   const { ownedAccessoryIds, equippedAccessoryId } = customization;
+  const character = getCharacter(characterId);
 
   return (
-    <ScreenShell onBack={onBack} title="다온 꾸미기">
-      <div className="card relative flex flex-col items-center gap-4 overflow-hidden py-8">
+    <ScreenShell onBack={onBack} title="내 공부 친구">
+      {/* 현재 친구 — 카드로 감싸지 않는다(카드 안에 카드 금지). cream 위에 바로. */}
+      <div className="relative flex flex-col items-center gap-2 pt-2">
         <span
           aria-hidden
-          className="pointer-events-none absolute left-1/2 top-10 h-32 w-32 -translate-x-1/2 rounded-full bg-[radial-gradient(circle,var(--color-peach)_0%,transparent_70%)] opacity-50 blur-2xl"
+          className="pointer-events-none absolute left-1/2 top-6 h-32 w-32 -translate-x-1/2 rounded-full bg-[radial-gradient(circle,var(--color-peach)_0%,transparent_70%)] opacity-50 blur-2xl"
         />
         <div className="relative">
-          <CharacterFace expression="happy" accessoryId={equippedAccessoryId} />
+          <CharacterFace
+            expression="happy"
+            accessoryId={equippedAccessoryId}
+            characterId={characterId}
+          />
         </div>
-        <p className="relative text-sm text-warm-gray">
-          보유 코인 <span className="font-semibold text-cocoa">{coins}</span>
+        <p className="relative mt-1 text-base font-medium text-cocoa">
+          {character.name}
         </p>
+        <p className="relative max-w-[260px] text-center text-xs leading-relaxed text-warm-gray">
+          {character.tagline}
+        </p>
+        <button
+          type="button"
+          onClick={onOpenCharacterSelect}
+          className="btn-secondary relative mt-2"
+        >
+          다른 친구 선택하기
+        </button>
       </div>
 
-      <ul className="flex flex-col gap-2">
+      <div className="border-t border-warm-line pt-4">
+        <div className="flex items-baseline justify-between">
+          <p className="text-xs font-medium text-warm-gray">꾸미기</p>
+          <p className="text-xs text-warm-gray">
+            보유 코인 <span className="font-semibold text-cocoa">{coins}</span>
+          </p>
+        </div>
+        <ul className="mt-2 flex flex-col gap-2">
         {CHARACTER_ACCESSORIES.map((accessory) => {
           const owned = ownedAccessoryIds.includes(accessory.id);
           const equipped = equippedAccessoryId === accessory.id;
@@ -151,7 +180,8 @@ export default function CharacterCustomization({
             </li>
           );
         })}
-      </ul>
+        </ul>
+      </div>
     </ScreenShell>
   );
 }

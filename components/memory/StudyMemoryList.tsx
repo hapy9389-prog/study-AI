@@ -3,11 +3,13 @@
 import { useState } from "react";
 import type { StudyRecord } from "@/lib/types";
 import { formatMinutesAndSeconds } from "@/lib/mockData";
+import { characterNickname } from "@/lib/characters";
 import {
   RECENT_RECORDS_LIMIT,
   feelingLabel,
   formatCompletedAt,
   loadStudyRecords,
+  recordCharacterId,
 } from "@/lib/studyRecords";
 
 // "기억" 탭 화면. 저장된 최근 공부 기록을 보여준다.
@@ -56,7 +58,7 @@ export default function StudyMemoryList() {
 
               <div className="daon-bubble mt-3">
                 <span className="mr-1 text-xs font-medium text-lavender-deep">
-                  다온
+                  {characterNickname(recordCharacterId(record))}
                 </span>
                 {record.characterReaction}
               </div>

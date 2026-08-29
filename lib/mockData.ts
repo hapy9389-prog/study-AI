@@ -3,14 +3,7 @@
 // from the user (see lib/types.ts StudySession), fed into the template
 // functions below.
 
-import type { Character, ReactionData, MemoryResult } from "./types";
-
-export const daon: Character = {
-  name: "다온",
-  age: 8,
-  mood: "호기심 가득",
-  currentInterest: "아직 없음",
-};
+import type { ReactionData, MemoryResult } from "./types";
 
 export const moodBadges: string[] = ["호기심 많음", "오늘도 배우고 싶음", "나를 믿고 있음"];
 
@@ -23,14 +16,13 @@ export const reactionData: ReactionData = {
 };
 
 export const memoryResult: MemoryResult = {
-  memoryMessage: "다온이가 오늘의 공부를 기억했어요.",
   nextStudyNudge: "내일도 같이 공부해볼까?",
-  responseLines: {
-    proud: "그치, 나도 옆에서 보면서 뿌듯했어.",
-    tired: "오늘은 좀 힘들었구나. 여기까지 같이 있었던 것만으로도 괜찮아.",
-    fun: "재밌었다니, 나도 옆에서 괜히 궁금해졌어.",
-  },
 };
+
+// "다온이가 오늘의 공부를 기억했어요." — 동반자 애칭이 들어간다.
+export function buildMemoryMessage(nickname: string): string {
+  return `${nickname}가 오늘의 공부를 기억했어요.`;
+}
 
 export function toMinutes(totalSeconds: number): number {
   return Math.floor(totalSeconds / 60);
@@ -75,30 +67,9 @@ export function formatTotalStudyTime(totalMinutes: number): string {
   return `${hours}시간 ${minutes}분`;
 }
 
-// elapsedSeconds는 실제 측정 시간(Phase 3) — 목표(targetMinutes)가 아니다.
-// 대사에서는 분 단위로 버림해서 자연스럽게("N분 정도"), 60초 미만은 "잠깐"으로
-// 표현해 "0분 정도"처럼 어색하게 보이지 않게 한다. 정확한 초는 결과 화면
-// (StudyRecordSummary)에서만 보여준다.
-export function buildReactionLine(subject: string, elapsedSeconds: number): string {
-  const togetherPhrase =
-    elapsedSeconds < 60 ? "잠깐" : `${toMinutes(elapsedSeconds)}분 정도`;
-  return `오늘 ${subject} 공부했구나! ${togetherPhrase} 같이 있었네. 어땠어?`;
-}
-
 export function buildMemoryLine(subject: string): string {
   return `오늘 공부한 주제: ${subject}`;
 }
 
-// 회고 대화(Phase 8) fallback 문구. /api/reflection · /api/reaction 이 실패해도
-// 흐름이 막히지 않도록 정적으로 준비해 둔다.
-export const FALLBACK_REFLECTION_QUESTION = "오늘 공부한 것 중에 제일 기억나는 건 뭐야?";
-
-// 마무리 반응 fallback. 완전히 일반적인 문장 대신 이번 공부 주제를 넣어
-// API 실패 상황에서도 오늘 공부와 연결되게 한다.
-export function buildFallbackClosingLine(subject: string): string {
-  return `오늘 ${subject} 이야기는 여기까지 같이 기억해둘게.`;
-}
-
-// evidence가 partial/unclear인데 assessment가 추가 질문을 주지 않았을 때 쓰는
-// 정적 추가 질문. 시험 느낌 없이 짧고 부담 없게.
-export const FALLBACK_FOLLOWUP_QUESTION = "오늘 본 것 중에 이름이라도 기억나는 게 하나 있어?";
+// 캐릭터별 회고/반응 fallback 대사는 lib/characterVoice.ts 로 옮겼다
+// (getCharacterVoice(id)). API 실패 시 CharacterReaction 이 그걸 쓴다.

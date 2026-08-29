@@ -37,8 +37,8 @@ const serif = Gowun_Batang({
 });
 
 export const metadata: Metadata = {
-  title: "다온 - AI 공부 성장 게임",
-  description: "공부하고, 다온이와 함께 성장하는 AI 공부 게임",
+  title: "함께 공부 - AI 공부 성장 게임",
+  description: "공부하고, AI 공부 친구와 함께 성장하는 공부 게임",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

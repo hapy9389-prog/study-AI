@@ -1,14 +1,9 @@
 // Mock-data-only shared types for the Phase 1/2 UI prototype.
 // No real API/DB shapes here — everything mirrors lib/mockData.ts.
 
-export type Expression = "curious" | "quiet" | "happy" | "excited";
+import type { CharacterId } from "./characters";
 
-export interface Character {
-  name: string;
-  age: number;
-  mood: string;
-  currentInterest: string;
-}
+export type Expression = "curious" | "quiet" | "happy" | "excited";
 
 // A user-entered study session. `targetMinutes` is a goal the user set.
 // `startedAt`/`elapsedSeconds` are stamped by the reducer (Phase 3) — never
@@ -43,6 +38,12 @@ export interface StudyRecord {
   characterReaction: string;
   /** new Date().toISOString() */
   completedAt: string;
+  /**
+   * 이 공부를 함께한 동반자. 캐릭터 선택 기능 이전 기록엔 없다 —
+   * 없으면 DEFAULT_CHARACTER_ID(다온)으로 간주한다. 전체 목록/통계는 캐릭터
+   * 무관하게 다 쓰고, LLM 에 넘기는 최근 기억만 이 값으로 필터한다.
+   */
+  characterId?: CharacterId;
 }
 
 // Claude 프롬프트에 넘기는 최소 과거 기억. StudyRecord에서 필요한 사실만 추린다.
@@ -119,9 +120,7 @@ export interface StudyRewardResult extends StudyRewardCalculation {
 export type ReflectionEvidence = "clear" | "partial" | "unclear";
 
 export interface MemoryResult {
-  memoryMessage: string;
   nextStudyNudge: string;
-  responseLines: Record<FeelingChoice["id"], string>;
 }
 
 // 공부로 얻은 coin(StudyRewardState.coins)을 소비해 다온에게 장착하는 순수 외형

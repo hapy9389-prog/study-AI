@@ -1,5 +1,10 @@
 import CharacterScene, { type SceneKind } from "./CharacterScene";
 import HomeHeroRoom from "@/components/room/HomeHeroRoom";
+import {
+  characterSubject,
+  DEFAULT_CHARACTER_ID,
+  type CharacterId,
+} from "@/lib/characters";
 import type {
   CharacterAccessoryId,
   Expression,
@@ -9,9 +14,11 @@ import type {
 
 interface CharacterAreaProps {
   phase: ViewState;
+  /** 현재 선택된 동반자. 생략 시 다온. */
+  characterId?: CharacterId;
   /** idle 상단 Hero 방 단계. app/page.tsx rewardState 가 source. idle 에서만 쓴다. */
   roomStage?: RoomStage;
-  /** 다온에 장착된 액세서리. 모든 phase 에서 유지된다. */
+  /** 캐릭터에 장착된 액세서리. 모든 phase 에서 유지된다. */
   equippedAccessoryId?: CharacterAccessoryId | null;
 }
 
@@ -36,15 +43,17 @@ const sceneByPhase: Record<ViewState, SceneKind> = {
 // there's never a duplicate speech bubble on screen.
 export default function CharacterArea({
   phase,
+  characterId = DEFAULT_CHARACTER_ID,
   roomStage = 1,
   equippedAccessoryId,
 }: CharacterAreaProps) {
-  // idle: 다온이 "실제 내 방 안에" 있는 모습이 먼저 보이고, 그 아래 공부 입력이
+  // idle: 동반자가 "실제 내 방 안에" 있는 모습이 먼저 보이고, 그 아래 공부 입력이
   // 화면의 주인공이 된다 — 캐릭터 단독 씬으로 상단을 크게 차지하지 않는다.
   if (phase === "idle") {
     return (
       <section className="flex flex-col gap-3">
         <HomeHeroRoom
+          characterId={characterId}
           roomStage={roomStage}
           equippedAccessoryId={equippedAccessoryId ?? null}
         />
@@ -62,11 +71,12 @@ export default function CharacterArea({
         scene={sceneByPhase[phase]}
         expression={expressionByPhase[phase]}
         accessoryId={equippedAccessoryId}
+        characterId={characterId}
       />
 
       {phase === "studying" && (
         <p className="font-serif text-sm text-warm-gray">
-          다온이가 조용히 함께 있어요
+          {characterSubject(characterId)} 조용히 함께 있어요
         </p>
       )}
     </section>
