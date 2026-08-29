@@ -44,6 +44,13 @@ export interface StudyRecord {
    * 무관하게 다 쓰고, LLM 에 넘기는 최근 기억만 이 값으로 필터한다.
    */
   characterId?: CharacterId;
+  /**
+   * 회고 대화에서 최종적으로 도달한 판정(첫 답변 + follow-up 답변까지 반영).
+   * 없으면(구 기록 · assessment 미수행/실패) clarity 표현 없이 기존과 동일하게 렌더한다.
+   * "정답/실패"가 아니라 "이 공부가 얼마나 선명한 기억으로 남았는가"만 나타낸다.
+   * reward/stats/growth 계산에는 절대 들어가지 않는다.
+   */
+  reflectionClarity?: ReflectionEvidence;
 }
 
 // Claude 프롬프트에 넘기는 최소 과거 기억. StudyRecord에서 필요한 사실만 추린다.
@@ -55,6 +62,11 @@ export interface StudyMemoryContext {
   elapsedSeconds: number;
   feelingId: FeelingChoice["id"];
   completedAt: string;
+  /**
+   * 그 공부가 얼마나 선명한 기억으로 남았는지. partial/unclear 일 때만 채워 LLM
+   * 프롬프트에 넘긴다(clear/미지정은 생략 — 기본값이라 노이즈만 늘린다).
+   */
+  reflectionClarity?: ReflectionEvidence;
 }
 
 export interface ReactionData {
@@ -116,7 +128,9 @@ export interface StudyRewardResult extends StudyRewardCalculation {
 // 회고 답변에 이번 공부 주제와 관련된 내용의 흔적이 얼마나 드러나는지에 대한
 // 내부 분류. "정답 여부"나 "실제로 공부했는지"를 인증하는 값이 아니다 —
 // clear 도 "공부했음이 확인됨"이 아니라 "답변에 구체적 흔적이 있음"일 뿐이다.
-// production 사용자 UI에는 표시하지 않고, 영속 저장하지 않는다(세션 중에만).
+// StudyRecord.reflectionClarity 로 선택적으로 저장되어 "기억이 얼마나 선명하게
+// 남았는가"의 표현(done 문구·Memory 카드·캐릭터 반응)에만 쓰인다. raw enum 자체는
+// 사용자 UI에 노출하지 않고, reward/stats/growth 계산에는 들어가지 않는다.
 export type ReflectionEvidence = "clear" | "partial" | "unclear";
 
 export interface MemoryResult {
@@ -198,6 +212,9 @@ export interface AppState {
   // 이번 세션 완료로 지급된 보상(코인/누적시간/방 단계 변화). done 화면 보상
   // 카드용. 완료 처리가 1회 가드를 통과한 경우에만 채워진다.
   reward?: StudyRewardResult;
+  // 회고에서 최종 도달한 판정. done 화면 기억 표현용(aiReaction·reward 와 같은
+  // SELECT_FEELING 경로). 실제 판정이 없었으면(구 기록 없음/assessment 실패) undefined.
+  reflectionClarity?: ReflectionEvidence;
 }
 
 export type Action =
@@ -208,6 +225,7 @@ export type Action =
       feelingId: FeelingChoice["id"];
       aiReaction?: string;
       reward?: StudyRewardResult;
+      reflectionClarity?: ReflectionEvidence;
     }
   // done 화면에서 "새 공부 시작하기" — 처음 상태로 되돌린다.
   | { type: "RESET" }

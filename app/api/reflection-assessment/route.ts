@@ -48,6 +48,11 @@ function buildSystemPrompt(followUpTone: string): string {
 위 예시는 정답을 맞혔는지 검증하는 기준이 아니라, "공부 내용의 구체적인 흔적이
 얼마나 드러나는가"의 경계를 맞추기 위한 것이다.
 
+[follow-up 이 함께 주어질 때]
+- followUpQuestion / followUpAnswer 가 함께 주어지면, 첫 답변과 follow-up 답변을
+  합쳐서 최종적으로 얼마나 구체적 흔적이 드러나는지로 판정한다.
+- follow-up 답변에서 구체적인 내용이 나왔다면 그만큼 상향해서 본다.
+
 [중요]
 - 답이 사실로 맞는지, 개념을 정확히 이해했는지 검증하지 않는다. subject 관련 흔적이 있으면 clear가 될 수 있다.
 - 사용자의 실력·이해도·진짜 공부했는지·거짓말인지는 판단하지 않는다.
@@ -139,10 +144,25 @@ export async function POST(request: Request): Promise<Response> {
     CHARACTER_PERSONAS[characterId].assessmentTone,
   );
 
+  // follow-up 답변 후 최종 재판정에서만 함께 온다. 둘 다 비어있지 않을 때만 쓴다.
+  const { followUpQuestion: rawFollowUpQuestion, followUpAnswer: rawFollowUpAnswer } =
+    body as Record<string, unknown>;
+  const hasFollowUp =
+    typeof rawFollowUpQuestion === "string" &&
+    rawFollowUpQuestion.trim() !== "" &&
+    typeof rawFollowUpAnswer === "string" &&
+    rawFollowUpAnswer.trim() !== "";
+
   const userMessage = [
     `subject: ${clamp(subject, MAX_SUBJECT_LENGTH)}`,
     `question: ${clamp(question, MAX_QUESTION_LENGTH)}`,
     `answer: ${clamp(answer, MAX_ANSWER_LENGTH)}`,
+    ...(hasFollowUp
+      ? [
+          `followUpQuestion: ${clamp(rawFollowUpQuestion as string, MAX_QUESTION_LENGTH)}`,
+          `followUpAnswer: ${clamp(rawFollowUpAnswer as string, MAX_ANSWER_LENGTH)}`,
+        ]
+      : []),
   ].join("\n");
 
   try {

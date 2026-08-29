@@ -60,7 +60,12 @@ function isStudyRecord(value: unknown): value is StudyRecord {
     typeof r.characterReaction === "string" &&
     typeof r.completedAt === "string" &&
     // 캐릭터 선택 이전 기록엔 없다. 없거나(구 기록) 유효한 id 면 통과.
-    (r.characterId === undefined || isCharacterId(r.characterId))
+    (r.characterId === undefined || isCharacterId(r.characterId)) &&
+    // 회고 선명도 도입 이전 기록엔 없다. 없거나 유효한 값이면 통과.
+    (r.reflectionClarity === undefined ||
+      r.reflectionClarity === "clear" ||
+      r.reflectionClarity === "partial" ||
+      r.reflectionClarity === "unclear")
   );
 }
 
@@ -108,6 +113,12 @@ export function loadRecentMemories(characterId?: CharacterId): StudyMemoryContex
     elapsedSeconds: record.elapsedSeconds,
     feelingId: record.feelingId,
     completedAt: record.completedAt,
+    // partial/unclear 만 넘긴다 — 캐릭터가 "그때 흐릿했던 공부"를 알아볼 수 있게.
+    // clear/미지정은 생략(기본값이라 프롬프트 노이즈만 늘린다).
+    ...(record.reflectionClarity === "partial" ||
+    record.reflectionClarity === "unclear"
+      ? { reflectionClarity: record.reflectionClarity }
+      : {}),
   }));
 }
 

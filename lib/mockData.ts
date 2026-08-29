@@ -3,7 +3,7 @@
 // from the user (see lib/types.ts StudySession), fed into the template
 // functions below.
 
-import type { ReactionData, MemoryResult } from "./types";
+import type { ReactionData, MemoryResult, ReflectionEvidence } from "./types";
 
 export const moodBadges: string[] = ["호기심 많음", "오늘도 배우고 싶음", "나를 믿고 있음"];
 
@@ -69,6 +69,28 @@ export function formatTotalStudyTime(totalMinutes: number): string {
 
 export function buildMemoryLine(subject: string): string {
   return `오늘 공부한 주제: ${subject}`;
+}
+
+// 회고에서 최종 도달한 판정(reflectionClarity) → 감성 문구.
+// raw enum(clear/partial/unclear)은 화면에 노출하지 않는다. "실패/틀림/이해 못함"
+// 같은 부정 판정 문구는 쓰지 않는다 — 모두 사용자의 소중한 공부 기록이다.
+
+// done 화면에서 오늘 공부가 어떻게 남았는지 한 줄.
+// clear 도 문구를 표시한다("선명하게 남았어요"). undefined(구 기록 · assessment
+// 미수행/실패)만 빈 문자열 — 이때는 아무 줄도 그리지 않는다.
+export function clarityDoneLine(clarity?: ReflectionEvidence): string {
+  if (clarity === "clear") return "오늘 공부가 선명하게 남았어요.";
+  if (clarity === "partial") return "오늘 공부가 조금 흐릿하게 남았어요.";
+  if (clarity === "unclear") return "오늘 공부가 아직 희미하게 남아 있어요.";
+  return "";
+}
+
+// Memory 카드에 붙이는 짧은 상태 라벨.
+// clear 와 undefined 는 빈 문자열 — 라벨 없이 기존과 동일하게 렌더한다.
+export function clarityNote(clarity?: ReflectionEvidence): string {
+  if (clarity === "partial") return "조금 흐릿하게 남은 기억";
+  if (clarity === "unclear") return "희미하게 남은 기억";
+  return "";
 }
 
 // 캐릭터별 회고/반응 fallback 대사는 lib/characterVoice.ts 로 옮겼다

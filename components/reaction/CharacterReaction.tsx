@@ -22,7 +22,11 @@ interface CharacterReactionProps {
   studySession: StudySession;
   /** 장착된 액세서리(있으면). 상단 작은 캐릭터에 그대로 반영. */
   equippedAccessoryId?: CharacterAccessoryId | null;
-  onSelectFeeling: (feelingId: FeelingChoice["id"], aiReaction?: string) => void;
+  onSelectFeeling: (
+    feelingId: FeelingChoice["id"],
+    aiReaction?: string,
+    reflectionClarity?: ReflectionEvidence,
+  ) => void;
 }
 
 // 공부 완료 후 reaction phase 안에서만 도는 짧은 회고 대화. 전역 ViewState 는
@@ -60,6 +64,12 @@ export default function CharacterReaction({
   // evidence 는 내부 판단값이다 — 아래 dev 표시 외에는 사용자에게 보이지 않는다.
   const [evidence, setEvidence] = useState<ReflectionEvidence | null>(null);
   const [assessmentFallback, setAssessmentFallback] = useState(false);
+  // 회고에서 최종 도달한 판정. 실제 판정이 있었을 때만 값을 갖는다(assessment
+  // 실패 시엔 null → StudyRecord 에 clarity 를 남기지 않는다). raw enum 은 여기서
+  // 밖으로만 나가고, 사용자 문구 변환은 done/Memory 쪽에서 한다.
+  const [clarityResult, setClarityResult] = useState<ReflectionEvidence | null>(
+    null,
+  );
 
   // 각 단계 요청이 정확히 한 번만 처리되도록 동기 재진입 방어(렌더 타이밍과 무관).
   const busyRef = useRef(false);
@@ -74,12 +84,15 @@ export default function CharacterReaction({
 
   // /api/reaction 으로 마무리 한마디를 받는다. 실패/타임아웃이면 주제가 들어간
   // 정적 fallback 을 돌려준다 — 흐름을 막지 않는다.
-  const fetchClosingLine = async (reflection: {
-    question: string;
-    answer: string;
-    followUpQuestion?: string;
-    followUpAnswer?: string;
-  }): Promise<string> => {
+  const fetchClosingLine = async (
+    reflection: {
+      question: string;
+      answer: string;
+      followUpQuestion?: string;
+      followUpAnswer?: string;
+    },
+    reflectionClarity?: ReflectionEvidence,
+  ): Promise<string> => {
     const recentMemories = loadRecentMemories(characterId);
     try {
       const response = await fetch("/api/reaction", {
@@ -93,6 +106,7 @@ export default function CharacterReaction({
           feelingId,
           recentMemories,
           reflection,
+          ...(reflectionClarity ? { reflectionClarity } : {}),
         }),
       });
       if (response.ok) {
@@ -107,7 +121,7 @@ export default function CharacterReaction({
     } catch (error) {
       console.error("[CharacterReaction] /api/reaction 호출 오류:", error);
     }
-    return voice.closingLine(subject);
+    return voice.closingLine(subject, reflectionClarity);
   };
 
   // 1) 감상 선택 → 회고 질문 생성. 요청 중 다른 칩 재선택 금지.
@@ -205,10 +219,20 @@ export default function CharacterReaction({
     setAssessmentFallback(usedFallback);
 
     if (ev === "clear") {
-      const closing = await fetchClosingLine({ question, answer: trimmed });
+      // assessment 가 실제로 clear 를 준 경우에만 clarity 로 남긴다.
+      // 실패해서 clear 로 흘려보낸 경우(usedFallback)는 판정 없음 → null.
+      const clarity: ReflectionEvidence | null = usedFallback ? null : "clear";
+      setClarityResult(clarity);
+      const closing = await fetchClosingLine(
+        { question, answer: trimmed },
+        clarity ?? undefined,
+      );
       setClosingLine(closing);
       setStep("finishing");
     } else {
+      // 이 분기는 assessment 가 실제로 partial/unclear 를 반환했을 때만 온다.
+      // follow-up 답변 후 재판정으로 갱신될 수 있는 임시값.
+      setClarityResult(ev);
       setFollowUpQuestion(followUp ?? voice.followUpQuestion);
       setAnswer("");
       setStep("followup");
@@ -217,7 +241,8 @@ export default function CharacterReaction({
     busyRef.current = false;
   };
 
-  // 3) 추가 질문 답변 제출 → 판단 없이 무조건 마무리(세 번째 질문 없음).
+  // 3) 추가 질문 답변 제출 → 첫 답변 + follow-up 답변으로 최종 clarity 재판정 후 마무리.
+  //    세 번째 질문은 없다. 재판정은 저장될 clarity 만 바꿀 뿐 흐름을 바꾸지 않는다.
   const handleSubmitFollowUp = async () => {
     if (busyRef.current || step !== "followup") return;
     const trimmed = answer.trim();
@@ -225,12 +250,55 @@ export default function CharacterReaction({
     busyRef.current = true;
     setIsLoading(true);
 
-    const closing = await fetchClosingLine({
-      question,
-      answer: firstAnswer,
-      followUpQuestion,
-      followUpAnswer: trimmed,
-    });
+    // 이 단계에 온 시점에서 evidence 는 항상 실제 partial/unclear 판정이다.
+    const firstEv: ReflectionEvidence = evidence ?? "partial";
+    let finalEv = firstEv;
+    try {
+      const response = await fetch("/api/reflection-assessment", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          characterId,
+          subject,
+          question,
+          answer: firstAnswer,
+          followUpQuestion,
+          followUpAnswer: trimmed,
+        }),
+      });
+      if (response.ok) {
+        const data = (await response.json()) as { evidence?: unknown };
+        if (
+          data.evidence === "clear" ||
+          data.evidence === "partial" ||
+          data.evidence === "unclear"
+        ) {
+          finalEv = data.evidence;
+        } else {
+          console.error("[CharacterReaction] 예상치 못한 재판정 응답:", data);
+        }
+      } else {
+        console.error(
+          "[CharacterReaction] /api/reflection-assessment 재판정 실패:",
+          response.status,
+        );
+      }
+    } catch (error) {
+      console.error("[CharacterReaction] 재판정 호출 오류:", error);
+    }
+    // 재판정 실패 시엔 첫 판정을 그대로 최종값으로 둔다.
+    setEvidence(finalEv);
+    setClarityResult(finalEv);
+
+    const closing = await fetchClosingLine(
+      {
+        question,
+        answer: firstAnswer,
+        followUpQuestion,
+        followUpAnswer: trimmed,
+      },
+      finalEv,
+    );
     setClosingLine(closing);
     setStep("finishing");
     setIsLoading(false);
@@ -242,7 +310,7 @@ export default function CharacterReaction({
     if (submittedRef.current || feelingId === null) return;
     submittedRef.current = true;
     setIsFinishing(true);
-    onSelectFeeling(feelingId, closingLine);
+    onSelectFeeling(feelingId, closingLine, clarityResult ?? undefined);
   };
 
   // 상단 작은 캐릭터 + 이름. 입력 단계에서는 작게(sm) 줄여 textarea 를 위로 올린다.
@@ -283,6 +351,7 @@ export default function CharacterReaction({
         Dev · evidence: {evidence}
         {assessmentFallback ? " (fallback)" : ""}
         {followUpQuestion ? " · follow-up: yes" : ""}
+        {` · saved clarity: ${clarityResult ?? "none"}`}
       </p>
     ) : null;
 

@@ -1,6 +1,7 @@
 import PostStudyCharacter from "@/components/character/PostStudyCharacter";
 import {
   buildMemoryMessage,
+  clarityDoneLine,
   memoryResult,
   reactionData,
   toMinutes,
@@ -10,6 +11,7 @@ import { getCharacterVoice } from "@/lib/characterVoice";
 import type {
   CharacterAccessoryId,
   FeelingChoice,
+  ReflectionEvidence,
   RoomStage,
   StudyRewardResult,
 } from "@/lib/types";
@@ -25,6 +27,8 @@ interface StudyCompletionSceneProps {
   equippedAccessoryId?: CharacterAccessoryId | null;
   /** 이번 세션 보상. 완료 저장 가드를 통과한 경우에만 채워진다. */
   reward?: StudyRewardResult;
+  /** 회고에서 최종 도달한 판정. 실제 판정이 없었으면 undefined(문구 표시 안 함). */
+  reflectionClarity?: ReflectionEvidence;
   onStartNew: () => void;
 }
 
@@ -48,6 +52,7 @@ export default function StudyCompletionScene({
   aiReaction,
   equippedAccessoryId,
   reward,
+  reflectionClarity,
   onStartNew,
 }: StudyCompletionSceneProps) {
   const closingLine =
@@ -55,6 +60,7 @@ export default function StudyCompletionScene({
   const feelingText =
     reactionData.choices.find((c) => c.id === feelingId)?.label ?? "";
   const minutes = toMinutes(elapsedSeconds);
+  const clarityLine = clarityDoneLine(reflectionClarity);
 
   const stageChanged =
     reward !== undefined && reward.previousRoomStage !== reward.roomStage;
@@ -83,6 +89,9 @@ export default function StudyCompletionScene({
           <p className="mt-0.5 text-xs text-warm-gray">
             {minutes}분{feelingText && ` · ${feelingText}`}
           </p>
+          {clarityLine && (
+            <p className="mt-1 text-xs text-warm-gray">{clarityLine}</p>
+          )}
         </div>
       </div>
 

@@ -55,6 +55,7 @@ import type {
   Action,
   CharacterAccessoryId,
   FeelingChoice,
+  ReflectionEvidence,
   StudyRewardResult,
 } from "@/lib/types";
 
@@ -88,6 +89,7 @@ function reducer(state: AppState, action: Action): AppState {
         selectedFeelingId: action.feelingId,
         aiReaction: action.aiReaction,
         reward: action.reward,
+        reflectionClarity: action.reflectionClarity,
       };
     case "RESET":
       // done 화면 "새 공부 시작하기" — 처음 상태로. 저장된 기록은 그대로 유지된다.
@@ -200,6 +202,7 @@ export default function Home() {
   const handleSelectFeeling = (
     feelingId: FeelingChoice["id"],
     aiReaction?: string,
+    reflectionClarity?: ReflectionEvidence,
   ) => {
     const session = state.studySession;
     let rewardResult: StudyRewardResult | undefined;
@@ -217,6 +220,9 @@ export default function Home() {
         feelingId,
         characterReaction: finalReaction,
         characterId: selectedCharacterId ?? DEFAULT_CHARACTER_ID,
+        // 회고에서 최종 도달한 판정. 실제 판정이 없었으면 undefined —
+        // 기억 표현에만 쓰이고 reward/stats/growth 에는 들어가지 않는다.
+        reflectionClarity,
       });
       saveStudyRecord(record);
       // StudyRecord 하나가 완성되는 바로 이 시점에 성장 상태도 한 번만 갱신한다.
@@ -249,7 +255,13 @@ export default function Home() {
         console.log("[reward]", nextReward);
       }
     }
-    dispatch({ type: "SELECT_FEELING", feelingId, aiReaction, reward: rewardResult });
+    dispatch({
+      type: "SELECT_FEELING",
+      feelingId,
+      aiReaction,
+      reward: rewardResult,
+      reflectionClarity,
+    });
   };
 
   // 꾸미기 화면을 열 때, 그 사이 공부 완료로 늘었을 수 있는 coin 을 최신값으로
@@ -465,6 +477,7 @@ export default function Home() {
               aiReaction={state.aiReaction}
               equippedAccessoryId={customization.equippedAccessoryId}
               reward={state.reward}
+              reflectionClarity={state.reflectionClarity}
               onStartNew={() => {
                 recordSavedRef.current = false;
                 dispatch({ type: "RESET" });
