@@ -9,6 +9,11 @@ interface RoomSceneProps {
    * 크기가 달라서, 슬롯만 비워 둔다.
    */
   character: ReactNode;
+  /**
+   * "default"(생략) = 기존 크기(MyRoom / MyRoomScreen / FriendRoomScreen).
+   * "hero" = 홈 idle 상단에서 조금 더 크게. 프레임 높이만 바뀐다.
+   */
+  size?: "default" | "hero";
 }
 
 // 내 방(MyRoom / MyRoomScreen)과 친구 방(FriendRoomScreen)이 같은 방 그림을
@@ -20,10 +25,17 @@ interface RoomSceneProps {
 //   1: 책상 + 의자
 //   2: + 스탠드 + 러그 + 식물
 //   3: + 책장 + 벽 장식 + 따뜻한 조명
-export default function RoomScene({ stage, character }: RoomSceneProps) {
+export default function RoomScene({
+  stage,
+  character,
+  size = "default",
+}: RoomSceneProps) {
+  // hero(홈 상단)는 화면 최상단이라 mt 없이. 높이는 기존과 동일하게 둬서 공부
+  // 시작 입력이 화면의 주인공 자리를 유지한다.
+  const frame = size === "hero" ? "h-44" : "mt-3 h-44";
   return (
     <div
-      className={`relative mt-3 h-44 w-full overflow-hidden rounded-2xl border border-warm-line ${
+      className={`relative ${frame} w-full overflow-hidden rounded-2xl border border-warm-line ${
         stage >= 3 ? "bg-peach/25" : "bg-cream"
       }`}
     >

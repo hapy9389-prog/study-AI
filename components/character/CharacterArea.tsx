@@ -1,9 +1,16 @@
 import CharacterScene, { type SceneKind } from "./CharacterScene";
-import { moodBadges } from "@/lib/mockData";
-import type { CharacterAccessoryId, Expression, ViewState } from "@/lib/types";
+import HomeHeroRoom from "@/components/room/HomeHeroRoom";
+import type {
+  CharacterAccessoryId,
+  Expression,
+  RoomStage,
+  ViewState,
+} from "@/lib/types";
 
 interface CharacterAreaProps {
   phase: ViewState;
+  /** idle 상단 Hero 방 단계. app/page.tsx rewardState 가 source. idle 에서만 쓴다. */
+  roomStage?: RoomStage;
   /** 다온에 장착된 액세서리. 모든 phase 에서 유지된다. */
   equippedAccessoryId?: CharacterAccessoryId | null;
 }
@@ -29,8 +36,26 @@ const sceneByPhase: Record<ViewState, SceneKind> = {
 // there's never a duplicate speech bubble on screen.
 export default function CharacterArea({
   phase,
+  roomStage = 1,
   equippedAccessoryId,
 }: CharacterAreaProps) {
+  // idle: 다온이 "실제 내 방 안에" 있는 모습이 먼저 보이고, 그 아래 공부 입력이
+  // 화면의 주인공이 된다 — 캐릭터 단독 씬으로 상단을 크게 차지하지 않는다.
+  if (phase === "idle") {
+    return (
+      <section className="flex flex-col gap-3">
+        <HomeHeroRoom
+          roomStage={roomStage}
+          equippedAccessoryId={equippedAccessoryId ?? null}
+        />
+        <div className="daon-bubble mx-6 max-w-[280px] self-start">
+          <p>오늘은 뭐 공부할까?</p>
+          <p className="text-warm-gray">끝나면 나도 알고 싶어!</p>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="flex flex-col items-center gap-3 px-6">
       <CharacterScene
@@ -39,31 +64,10 @@ export default function CharacterArea({
         accessoryId={equippedAccessoryId}
       />
 
-      {phase === "idle" && (
-        <div className="daon-bubble max-w-[260px] text-center">
-          <p>오늘은 뭐 공부할 거야?</p>
-          <p className="text-warm-gray">끝나면 나도 알고 싶어!</p>
-        </div>
-      )}
-
       {phase === "studying" && (
         <p className="font-serif text-sm text-warm-gray">
           다온이가 조용히 함께 있어요
         </p>
-      )}
-
-      {/* 무드 배지는 공부 시작 전(idle)에만. 공부 중·회고 중에는 시선을 뺏지 않는다. */}
-      {phase === "idle" && (
-        <div className="flex flex-wrap justify-center gap-1.5">
-          {moodBadges.map((badge) => (
-            <span
-              key={badge}
-              className="rounded-full bg-cream-deep px-2.5 py-1 text-[11px] text-warm-gray"
-            >
-              {badge}
-            </span>
-          ))}
-        </div>
       )}
     </section>
   );

@@ -68,106 +68,104 @@ export default function StudyCard({
     onStartStudy({ subject: trimmedSubject, targetMinutes: effectiveMinutes as number });
   };
 
-  return (
-    <section className="card mx-6">
-      {phase === "idle" && (
-        <>
-          <p className="text-xs font-medium text-warm-gray">오늘 뭐 공부할까?</p>
+  if (phase === "idle") {
+    return (
+      <section className="mx-6 rounded-2xl bg-white p-5">
+        <input
+          type="text"
+          value={subject}
+          onChange={(e) => setSubject(e.target.value)}
+          placeholder="예: 영어 회화, 미분, SQLD"
+          className="field"
+        />
+
+        <p className="mt-4 text-xs font-medium text-warm-gray">목표 시간</p>
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          {QUICK_MINUTES.map((minutes) => {
+            const selected =
+              targetMinutes === minutes && customMinutes.trim() === "";
+            return (
+              <button
+                key={minutes}
+                type="button"
+                onClick={() => {
+                  setTargetMinutes(minutes);
+                  setCustomMinutes("");
+                }}
+                className={selected ? "chip-active" : "chip"}
+              >
+                {minutes}분
+              </button>
+            );
+          })}
           <input
-            type="text"
-            value={subject}
-            onChange={(e) => setSubject(e.target.value)}
-            placeholder="예: 영어 회화, 미분, SQLD"
-            className="field mt-2"
+            type="number"
+            inputMode="numeric"
+            min={1}
+            value={customMinutes}
+            onChange={(e) => {
+              setCustomMinutes(e.target.value);
+              setTargetMinutes(null);
+            }}
+            placeholder="직접 입력"
+            className="w-24 rounded-2xl border border-peach/60 bg-cream px-3 py-2 text-sm text-cocoa outline-none transition-colors focus:border-peach-deep"
           />
-
-          <p className="mt-4 text-xs font-medium text-warm-gray">목표 시간</p>
-          <div className="mt-2 flex flex-wrap items-center gap-2">
-            {QUICK_MINUTES.map((minutes) => {
-              const selected =
-                targetMinutes === minutes && customMinutes.trim() === "";
-              return (
-                <button
-                  key={minutes}
-                  type="button"
-                  onClick={() => {
-                    setTargetMinutes(minutes);
-                    setCustomMinutes("");
-                  }}
-                  className={selected ? "chip-active" : "chip"}
-                >
-                  {minutes}분
-                </button>
-              );
-            })}
-            <input
-              type="number"
-              inputMode="numeric"
-              min={1}
-              value={customMinutes}
-              onChange={(e) => {
-                setCustomMinutes(e.target.value);
-                setTargetMinutes(null);
-              }}
-              placeholder="직접 입력"
-              className="w-24 rounded-2xl border border-peach/60 bg-cream px-3 py-2 text-sm text-cocoa outline-none transition-colors focus:border-peach-deep"
-            />
-          </div>
-
-          <button
-            type="button"
-            disabled={!isFormValid}
-            onClick={handleStart}
-            className="btn-primary mt-4"
-          >
-            공부 시작
-          </button>
-        </>
-      )}
-
-      {phase === "studying" && studySession && (
-        <div className="relative flex flex-col items-center gap-3">
-          {/* 다온+시계가 "불빛 안에" 앉도록 아주 옅은 온기 */}
-          <span
-            aria-hidden
-            className="pointer-events-none absolute left-1/2 top-1/2 h-56 w-56 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle,var(--color-peach)_0%,transparent_70%)] opacity-40 blur-2xl"
-          />
-          <p className="relative font-serif text-base text-cocoa">
-            {studySession.subject} 공부 중
-          </p>
-          <p className="relative text-5xl font-light tabular-nums tracking-tight text-cocoa">
-            {formatClock(liveElapsedSeconds)}
-          </p>
-          <p className="relative text-xs text-warm-gray">
-            목표 {studySession.targetMinutes}분
-          </p>
-          <button
-            type="button"
-            onClick={onCompleteStudy}
-            className="btn-primary relative"
-          >
-            공부 완료
-          </button>
-
-          {process.env.NODE_ENV === "development" && (
-            <div className="mt-3 w-full border-t border-warm-line pt-3">
-              <p className="text-[11px] text-warm-gray">개발 테스트</p>
-              <div className="mt-1.5 flex gap-1.5">
-                {DEBUG_ELAPSED_PRESETS.map(({ label, seconds }) => (
-                  <button
-                    key={seconds}
-                    type="button"
-                    onClick={() => onDebugSetElapsed(seconds)}
-                    className="rounded-md bg-warm-gray/10 px-2 py-1 text-[11px] font-medium text-warm-gray transition-colors hover:bg-warm-gray/20"
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
-      )}
-    </section>
-  );
+
+        <button
+          type="button"
+          disabled={!isFormValid}
+          onClick={handleStart}
+          className="btn-primary mt-4"
+        >
+          공부 시작
+        </button>
+      </section>
+    );
+  }
+
+  if (phase === "studying" && studySession) {
+    // 카드 없이 위 CharacterScene 과 이어지는 하나의 장면. 빛은 CharacterScene 의
+    // lamp-glow 하나로 통일하고 여기서 별도 glow 를 겹치지 않는다.
+    return (
+      <div className="flex w-full flex-col items-center gap-3">
+        <p className="font-serif text-base text-cocoa">
+          {studySession.subject} 공부 중
+        </p>
+        <p className="text-6xl font-light tabular-nums tracking-tight text-cocoa">
+          {formatClock(liveElapsedSeconds)}
+        </p>
+        <p className="text-xs text-warm-gray">
+          목표 {studySession.targetMinutes}분
+        </p>
+        <button
+          type="button"
+          onClick={onCompleteStudy}
+          className="btn-primary mt-2 max-w-[300px]"
+        >
+          공부 완료
+        </button>
+
+        {process.env.NODE_ENV === "development" && (
+          <div className="mt-3 w-full max-w-[300px] border-t border-warm-line pt-3">
+            <p className="text-[11px] text-warm-gray">개발 테스트</p>
+            <div className="mt-1.5 flex gap-1.5">
+              {DEBUG_ELAPSED_PRESETS.map(({ label, seconds }) => (
+                <button
+                  key={seconds}
+                  type="button"
+                  onClick={() => onDebugSetElapsed(seconds)}
+                  className="rounded-md bg-warm-gray/10 px-2 py-1 text-[11px] font-medium text-warm-gray transition-colors hover:bg-warm-gray/20"
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  return null;
 }

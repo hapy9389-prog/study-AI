@@ -187,6 +187,9 @@ export default function Home() {
       const rewardCalc = calculateStudyReward(session);
       const nextReward = updateStudyRewardAfterStudy(previousReward, session);
       saveStudyRewardState(nextReward);
+      // page.tsx 가 rewardState 의 source — 저장과 함께 메모리 상태도 갱신해
+      // RESET 후 idle 상단 Hero 의 roomStage 가 최신이 되게 한다.
+      setRewardState(nextReward);
       rewardResult = {
         ...rewardCalc,
         previousRoomStage: previousReward.roomStage,
@@ -291,16 +294,38 @@ export default function Home() {
     <MobileLayout activeTab={activeTab} onTabChange={setTab} navLocked={navLocked}>
       {activeTab === "memory" ? (
         <StudyMemoryList />
+      ) : state.phase === "studying" && state.studySession ? (
+        // 공부 중: 카드 스택이 아니라 하나의 조용한 장면. 캐릭터 + 타이머 +
+        // [공부 완료] 를 세로 중앙에 모으고 다른 요소는 띄우지 않는다.
+        <div className="flex flex-1 flex-col items-center justify-center gap-6 px-6 py-4">
+          <CharacterArea
+            phase="studying"
+            equippedAccessoryId={customization.equippedAccessoryId}
+          />
+          <StudyCard
+            phase="studying"
+            studySession={state.studySession}
+            onStartStudy={(session) => {
+              recordSavedRef.current = false;
+              dispatch({ type: "START_STUDY", studySession: session });
+            }}
+            onCompleteStudy={() => dispatch({ type: "COMPLETE_STUDY" })}
+            onDebugSetElapsed={(elapsedSeconds) =>
+              dispatch({ type: "DEBUG_SET_ELAPSED", elapsedSeconds })
+            }
+          />
+        </div>
       ) : (
         <>
           <CharacterArea
             phase={state.phase}
+            roomStage={rewardState.roomStage}
             equippedAccessoryId={customization.equippedAccessoryId}
           />
 
-          {(state.phase === "idle" || state.phase === "studying") && (
+          {state.phase === "idle" && (
             <StudyCard
-              phase={state.phase}
+              phase="idle"
               studySession={state.studySession}
               onStartStudy={(session) => {
                 recordSavedRef.current = false;
@@ -332,29 +357,15 @@ export default function Home() {
             />
           )}
 
-          {/* 내 방: 누적 공부로 발전하는 장기 보상 공간. idle 에서만, 공부 시작
-              CTA 보다 아래에 둔다 — 홈의 가장 큰 CTA 가 되면 안 된다.
-              그 아래 "다온 꾸미기" 진입 — peach primary 보다 약한 톤. */}
+          {/* 내 공간 요약 + 친구 공간: idle 에서만, 공부 시작 CTA 보다 아래.
+              방 그림은 상단 Hero 에 이미 나오므로 여기서는 누적시간/코인/진입
+              버튼만 — 홈의 가장 큰 CTA 가 되면 안 된다. */}
           {state.phase === "idle" && (
             <>
-              <MyRoom equippedAccessoryId={customization.equippedAccessoryId} />
-              {/* MyRoom 카드에 붙는 세컨더리 액션 — [공부 시작]보다 약한 톤. */}
-              <div className="mx-6 flex gap-2">
-                <button
-                  type="button"
-                  onClick={openMyRoomScreen}
-                  className="btn-secondary flex-1"
-                >
-                  내 방 크게 보기
-                </button>
-                <button
-                  type="button"
-                  onClick={openCustomization}
-                  className="btn-secondary flex-1"
-                >
-                  다온 꾸미기
-                </button>
-              </div>
+              <MyRoom
+                onOpenRoom={openMyRoomScreen}
+                onOpenCustomization={openCustomization}
+              />
               <FriendRoomsSection
                 friends={friends}
                 onVisit={setSelectedFriendId}
