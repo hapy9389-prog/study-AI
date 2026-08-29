@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import BottomNavigation, { type NavTab } from "./BottomNavigation";
+import PhoneFrame from "./PhoneFrame";
 
 interface MobileLayoutProps {
   children: ReactNode;
@@ -8,8 +9,9 @@ interface MobileLayoutProps {
   navLocked: boolean;
 }
 
-// Mobile-first shell: full-bleed on phones, centered as an app-like column on
-// wider (PC) viewports via max-width + centering — no hardcoded fixed width.
+// Mobile-first shell: 데스크톱에서는 PhoneFrame(스마트폰 프레임) 안, 모바일에서는
+// full-bleed. 내부 스크롤 영역(min-h-0 flex-1 overflow-y-auto)만 스크롤되고
+// BottomNavigation 은 프레임 하단에 항상 고정된다(shrink-0).
 export default function MobileLayout({
   children,
   activeTab,
@@ -17,17 +19,17 @@ export default function MobileLayout({
   navLocked,
 }: MobileLayoutProps) {
   return (
-    <div className="flex min-h-screen w-full justify-center bg-warm-gray/10">
-      <div className="flex min-h-screen w-full max-w-[430px] flex-col bg-cream shadow-[var(--shadow-lift)]">
-        <div className="motion-safe:animate-screen-enter flex flex-1 flex-col gap-4 overflow-y-auto py-6">
-          {children}
-        </div>
+    <PhoneFrame>
+      <div className="motion-safe:animate-screen-enter flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto py-6">
+        {children}
+      </div>
+      <div className="shrink-0">
         <BottomNavigation
           activeTab={activeTab}
           onTabChange={onTabChange}
           navLocked={navLocked}
         />
       </div>
-    </div>
+    </PhoneFrame>
   );
 }

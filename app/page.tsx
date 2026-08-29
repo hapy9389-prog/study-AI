@@ -2,6 +2,7 @@
 
 import { useEffect, useReducer, useRef, useState } from "react";
 import MobileLayout from "@/components/layout/MobileLayout";
+import PhoneFrame from "@/components/layout/PhoneFrame";
 import type { NavTab } from "@/components/layout/BottomNavigation";
 import CharacterArea from "@/components/character/CharacterArea";
 import StudyCard from "@/components/study/StudyCard";
@@ -290,12 +291,12 @@ export default function Home() {
     setShowMyRoomScreen(true);
   };
 
-  // SSR/최초 렌더는 항상 여기 — 캐릭터 해석이 끝나기 전. 빈 cream 컬럼(한 프레임).
+  // SSR/최초 렌더는 항상 여기 — 캐릭터 해석이 끝나기 전. 빈 cream 화면(한 프레임).
   if (!characterChecked) {
     return (
-      <div className="flex min-h-screen w-full justify-center bg-warm-gray/10">
-        <div className="min-h-screen w-full max-w-[430px] bg-cream shadow-[var(--shadow-lift)]" />
-      </div>
+      <PhoneFrame>
+        <div className="min-h-0 flex-1" />
+      </PhoneFrame>
     );
   }
 

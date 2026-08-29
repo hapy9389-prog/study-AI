@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Gowun_Batang, IBM_Plex_Sans_KR } from "next/font/google";
 import "./globals.css";
 
@@ -39,6 +39,12 @@ const serif = Gowun_Batang({
 export const metadata: Metadata = {
   title: "함께 공부 - AI 공부 성장 게임",
   description: "공부하고, AI 공부 친구와 함께 성장하는 공부 게임",
+};
+
+// 노치/홈 인디케이터 영역까지 화면을 쓰고, BottomNavigation·ScreenShell 의 기존
+// env(safe-area-inset-bottom) 여백이 실제로 동작하게 한다.
+export const viewport: Viewport = {
+  viewportFit: "cover",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
