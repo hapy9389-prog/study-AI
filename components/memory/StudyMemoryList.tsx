@@ -17,12 +17,14 @@ import {
 // 걸고 텍스트에는 절대 걸지 않는다. clear/미지정은 아무것도 그리지 않는다.
 // gradient/glassmorphism 아님. 정적(애니메이션 없음). aria-hidden.
 //
-//   partial  콘텐츠 뒤 blur blob 1개
-//   unclear  콘텐츠 뒤 blur blob 2개 + 콘텐츠 위 옅은 cream veil("안개 너머로 보는 느낌")
+//   partial  콘텐츠 뒤 코너 blob 1개 (가장자리만 살짝 흐림)
+//   unclear  콘텐츠 뒤 blob 3개(코너 2 + 중앙 넓게) + 콘텐츠 위 cream veil
+//            → "불균일한 배경 흐림 + 균일한 veil = 안개 낀 카드"
 //
-// veil 은 z-20 이라 콘텐츠(z-10) 위에 페인트된다. flat(블러 없음) — 코너 불균일함은
-// 뒤쪽 blob 이 담당한다. cream veil = 회색 아닌 따뜻한 안개. 텍스트는 계속 읽혀야 하므로
-// 불투명도는 /15 에서 시작한다(실제 렌더 확인 후에만 최대 /25 범위에서 조정).
+// veil 은 z-20 이라 콘텐츠(z-10) 위에 페인트된다. flat(블러 없음) — 불균일함은 뒤쪽
+// blob 이 담당. cream veil = 회색 아닌 따뜻한 안개. unclear 는 "확실히 희미함"이 목표라
+// veil /30 까지 올린다. 실제 렌더 확인 후 조정: 약하면 /35, 읽기 어려우면 /25~28,
+// 탁하면 cocoa blob 부터 낮추고 veil 유지. (현재 확정값: veil /30)
 function MemoryHaze({ clarity }: { clarity?: ReflectionEvidence }) {
   if (clarity !== "partial" && clarity !== "unclear") return null;
   const hazy = clarity === "unclear";
@@ -32,18 +34,22 @@ function MemoryHaze({ clarity }: { clarity?: ReflectionEvidence }) {
         <span
           className={
             hazy
-              ? "absolute -bottom-8 -right-6 h-28 w-32 rounded-full bg-cocoa/12 blur-lg"
+              ? "absolute -bottom-10 -right-8 h-32 w-36 rounded-full bg-cocoa/16 blur-lg"
               : "absolute -bottom-6 -right-4 h-24 w-28 rounded-full bg-cocoa/8 blur-md"
           }
         />
         {hazy && (
-          <span className="absolute -top-6 -left-6 h-20 w-24 rounded-full bg-cocoa/8 blur-lg" />
+          <>
+            <span className="absolute -top-7 -left-7 h-24 w-28 rounded-full bg-cocoa/10 blur-lg" />
+            {/* 중앙까지 덮는 아주 넓고 약한 흐림 — 카드 안쪽도 균일하지 않게. */}
+            <span className="absolute left-1/2 top-1/2 h-[55%] w-[70%] -translate-x-1/2 -translate-y-1/2 rounded-full bg-cocoa/6 blur-2xl" />
+          </>
         )}
       </span>
       {hazy && (
         <span
           aria-hidden="true"
-          className="pointer-events-none absolute inset-0 z-20 bg-cream/15"
+          className="pointer-events-none absolute inset-0 z-20 bg-cream/30"
         />
       )}
     </>
