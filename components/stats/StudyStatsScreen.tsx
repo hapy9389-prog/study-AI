@@ -5,8 +5,8 @@ import { loadStudyRecords } from "@/lib/studyRecords";
 import { formatTotalStudyTime } from "@/lib/mockData";
 import {
   WEEKDAY_LABELS,
+  getSubjectMinutesThisWeek,
   getTodayIndex,
-  getTopSubjectThisWeek,
   getWeekTotalMinutes,
   getWeeklyStudyMinutes,
 } from "@/lib/studyStats";
@@ -31,7 +31,10 @@ export default function StudyStatsScreen({ onGoHome }: StudyStatsScreenProps) {
   const weekly = getWeeklyStudyMinutes(records, now);
   const total = getWeekTotalMinutes(weekly);
   const todayIndex = getTodayIndex(now);
-  const topSubject = getTopSubjectThisWeek(records, now);
+  // 이번 주 과목별 공부시간. 화면이 길어지지 않게 상위 5개만.
+  const subjectMinutes = getSubjectMinutesThisWeek(records, now);
+  const topSubjects = subjectMinutes.slice(0, 5);
+  const maxSubjectMinutes = Math.max(...topSubjects.map((s) => s.minutes), 1);
   // 0 나누기 방지 + 한 건만 있어도 막대가 납작해지지 않게 최소 1.
   const max = Math.max(...weekly, 1);
   // 막대 위 값 라벨 / 오늘 점이 h-28 위로 넘치지 않도록 살짝 여유를 둔다.
@@ -117,24 +120,52 @@ export default function StudyStatsScreen({ onGoHome }: StudyStatsScreenProps) {
             </div>
           </div>
 
-          {/* 요약 — 카드 없이 divider + 텍스트. 최대 2줄. */}
-          <div className="flex flex-col gap-3 border-t border-warm-line pt-4">
-            <div>
-              <p className="text-xs text-warm-gray">이번 주</p>
-              <p className="font-serif text-lg text-cocoa">
-                {formatTotalStudyTime(total)}
-              </p>
-            </div>
-            {topSubject && (
-              <div>
-                <p className="text-xs text-warm-gray">가장 많이 공부한 과목</p>
-                <p className="text-sm text-cocoa">
-                  {topSubject.subject} ·{" "}
-                  {formatTotalStudyTime(topSubject.minutes)}
-                </p>
-              </div>
-            )}
+          {/* 요약 — 카드 없이 divider + 텍스트. */}
+          <div className="border-t border-warm-line pt-4">
+            <p className="text-xs text-warm-gray">이번 주</p>
+            <p className="font-serif text-lg text-cocoa">
+              {formatTotalStudyTime(total)}
+            </p>
           </div>
+
+          {/* 과목별 공부 — 카드 없이 divider + 제목 + 가로 bar. "목표 달성 progress" 가
+              아니라 과목 간 상대 공부시간 비교라서 bar 는 aria-hidden, 값은 텍스트로. */}
+          {topSubjects.length > 0 && (
+            <div className="flex flex-col gap-3 border-t border-warm-line pt-4">
+              <p className="text-xs text-warm-gray">과목별 공부</p>
+              <ul className="flex flex-col gap-3">
+                {topSubjects.map(({ subject, minutes }, i) => (
+                  <li key={subject} className="flex flex-col gap-1.5">
+                    <div className="flex items-baseline justify-between gap-3">
+                      <span
+                        className="min-w-0 truncate text-sm text-cocoa"
+                        title={subject}
+                      >
+                        {subject}
+                      </span>
+                      <span className="shrink-0 text-xs tabular-nums text-warm-gray">
+                        {formatTotalStudyTime(minutes)}
+                      </span>
+                    </div>
+                    <span
+                      aria-hidden
+                      className="block h-2 rounded-full bg-cocoa/10"
+                    >
+                      <span
+                        className={`block h-full rounded-full ${
+                          i === 0 ? "bg-cocoa/35" : "bg-cocoa/15"
+                        }`}
+                        style={{
+                          width: `${(minutes / maxSubjectMinutes) * 100}%`,
+                          minWidth: "2px",
+                        }}
+                      />
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </>
       )}
     </section>

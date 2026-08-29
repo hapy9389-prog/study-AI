@@ -65,25 +65,40 @@ export function getWeekTotalMinutes(weeklyMinutes: number[]): number {
   return weeklyMinutes.reduce((sum, m) => sum + m, 0);
 }
 
-// 이번 주에 가장 오래 공부한 과목 1개. subject 문자열 그대로 그룹(정규화 안 함 —
-// record 에 저장된 형태 그대로 보여준다). 이번 주 기록이 없으면 null.
+export interface SubjectMinutes {
+  subject: string;
+  minutes: number;
+}
+
+// 이번 주 과목별 실제 공부시간(분), 내림차순. subject 문자열 그대로 그룹(정규화 안 함 —
+// record 에 저장된 형태 그대로 보여준다). elapsedSeconds 를 먼저 합산하고 마지막에
+// 분으로 floor 한다. 0분 결과는 제외. 동일 시간이면 subject 한글 정렬로 순서를 고정한다.
+//
+// 주의: StudyRecord 는 최대 50개(MAX_STORED_RECORDS)만 저장되지만, 이 함수는 이번 주
+// 범위로 먼저 필터하므로 50개 cap 이 이번 주 집계를 잘라낼 가능성은 낮다.
+export function getSubjectMinutesThisWeek(
+  records: StudyRecord[],
+  now: number = Date.now(),
+): SubjectMinutes[] {
+  const boundaries = weekBoundaries(now);
+  const secondsBySubject = new Map<string, number>();
+
+  for (const record of thisWeekRecords(records, boundaries)) {
+    const prev = secondsBySubject.get(record.subject) ?? 0;
+    secondsBySubject.set(record.subject, prev + Math.max(0, record.elapsedSeconds));
+  }
+
+  return [...secondsBySubject.entries()]
+    .map(([subject, seconds]) => ({ subject, minutes: Math.floor(seconds / 60) }))
+    .filter((entry) => entry.minutes > 0)
+    .sort((a, b) => b.minutes - a.minutes || a.subject.localeCompare(b.subject, "ko"));
+}
+
+// 이번 주에 가장 오래 공부한 과목 1개. 이번 주 기록이 없으면 null.
+// (getSubjectMinutesThisWeek 의 1위 항목 — < 60초 과목은 양쪽 다 제외되어 결과 동일.)
 export function getTopSubjectThisWeek(
   records: StudyRecord[],
   now: number = Date.now(),
-): { subject: string; minutes: number } | null {
-  const boundaries = weekBoundaries(now);
-  const bySubject = new Map<string, number>();
-
-  for (const record of thisWeekRecords(records, boundaries)) {
-    const prev = bySubject.get(record.subject) ?? 0;
-    bySubject.set(record.subject, prev + Math.max(0, record.elapsedSeconds));
-  }
-
-  let top: { subject: string; seconds: number } | null = null;
-  for (const [subject, seconds] of bySubject) {
-    if (!top || seconds > top.seconds) top = { subject, seconds };
-  }
-
-  if (!top || top.seconds < 60) return null;
-  return { subject: top.subject, minutes: Math.floor(top.seconds / 60) };
+): SubjectMinutes | null {
+  return getSubjectMinutesThisWeek(records, now)[0] ?? null;
 }
