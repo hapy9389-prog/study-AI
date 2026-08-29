@@ -11,11 +11,13 @@ interface MyRoomScreenProps {
   equippedAccessoryId: CharacterAccessoryId | null;
   /** 오늘 공부한 분(app/page.tsx 가 StudyRecord 에서 계산). 아직 없으면 null. */
   todayStudyMinutes: number | null;
+  /** 이번 주(월→일) 누적 공부한 분(app/page.tsx 가 StudyRecord 에서 계산). */
+  weekStudyMinutes: number;
   onBack: () => void;
 }
 
 // "내 공간" 전체 화면. 친구 방(FriendRoomScreen)과 대응되는, 내 공개 Study Space.
-// 실제 현재 상태(roomStage / 누적 공부시간 / 장착한 다온 액세서리)를 그대로 쓴다.
+// 실제 현재 상태(roomStage / 이번 주 공부시간 / 장착한 다온 액세서리)를 그대로 쓴다.
 //
 // 공개 정보만 보여준다 — 캐릭터·방·공부시간. coin(개인 재화)·회고 답변·evidence·
 // AI 대화·CharacterGrowth 관심도는 넣지 않는다.
@@ -24,6 +26,7 @@ export default function MyRoomScreen({
   rewardState,
   equippedAccessoryId,
   todayStudyMinutes,
+  weekStudyMinutes,
   onBack,
 }: MyRoomScreenProps) {
   return (
@@ -52,9 +55,9 @@ export default function MyRoomScreen({
           </div>
         )}
         <div className="stat-row">
-          <dt className="text-xs text-warm-gray">지금까지 함께 공부한 시간</dt>
+          <dt className="text-xs text-warm-gray">이번 주 누적 공부 시간</dt>
           <dd className="text-sm font-medium text-cocoa">
-            {formatTotalStudyTime(rewardState.totalStudyMinutes)}
+            {formatTotalStudyTime(weekStudyMinutes)}
           </dd>
         </div>
       </dl>

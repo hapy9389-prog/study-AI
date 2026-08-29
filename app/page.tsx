@@ -50,6 +50,7 @@ import {
   saveStudyRewardState,
   updateStudyRewardAfterStudy,
 } from "@/lib/studyRewards";
+import { getWeekTotalStudyMinutes } from "@/lib/studyStats";
 import type {
   AppState,
   Action,
@@ -190,6 +191,8 @@ export default function Home() {
   const [myTodayStudyMinutes, setMyTodayStudyMinutes] = useState<number | null>(
     null,
   );
+  // 내 "이번 주 누적 공부시간" — StudyRecord 에서 계산. 클릭 시점에만 채운다.
+  const [myWeekStudyMinutes, setMyWeekStudyMinutes] = useState<number>(0);
 
   // 한 세션당 StudyRecord는 정확히 1개만 저장한다. 감상 선택은 이벤트 핸들러라
   // Strict Mode에서도 중복 실행되지 않지만, 연타/재진입 방어로 ref를 둔다.
@@ -298,8 +301,11 @@ export default function Home() {
   // 내 공간을 열 때 최신 상태를 다시 읽는다 — 그 사이 공부 완료로 roomStage/누적/
   // 오늘 공부시간이 바뀌었을 수 있다(handleSelectFeeling 은 localStorage 에만 저장).
   const openMyRoomScreen = () => {
+    const records = loadStudyRecords();
+    const nowMs = Date.now();
     setRewardState(loadStudyRewardState());
-    setMyTodayStudyMinutes(getTodayStudyMinutes(loadStudyRecords(), Date.now()));
+    setMyTodayStudyMinutes(getTodayStudyMinutes(records, nowMs));
+    setMyWeekStudyMinutes(getWeekTotalStudyMinutes(records, nowMs));
     setShowMyRoomScreen(true);
   };
 
@@ -378,6 +384,7 @@ export default function Home() {
         rewardState={rewardState}
         equippedAccessoryId={customization.equippedAccessoryId}
         todayStudyMinutes={myTodayStudyMinutes}
+        weekStudyMinutes={myWeekStudyMinutes}
         onBack={() => setShowMyRoomScreen(false)}
       />
     );

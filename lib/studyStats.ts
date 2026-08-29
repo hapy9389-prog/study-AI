@@ -65,6 +65,22 @@ export function getWeekTotalMinutes(weeklyMinutes: number[]): number {
   return weeklyMinutes.reduce((sum, m) => sum + m, 0);
 }
 
+// StudyRecord[] → 이번 주(월→일) 실제 공부시간 총합(분). Home "내 공간" 표시용.
+// 요일별 floor 후 합산이 아니라 — 이번 주 record 의 elapsedSeconds 를 전부 더한 뒤
+// 마지막에 한 번만 분으로 내린다(요일마다 버려지는 초 단위 손실 방지).
+// getWeeklyStudyMinutes 기반 주간 bar 계산과는 별개 경로다.
+export function getWeekTotalStudyMinutes(
+  records: StudyRecord[],
+  now: number = Date.now(),
+): number {
+  const boundaries = weekBoundaries(now);
+  let seconds = 0;
+  for (const record of thisWeekRecords(records, boundaries)) {
+    seconds += Math.max(0, record.elapsedSeconds);
+  }
+  return Math.floor(seconds / 60);
+}
+
 export interface SubjectMinutes {
   subject: string;
   minutes: number;
