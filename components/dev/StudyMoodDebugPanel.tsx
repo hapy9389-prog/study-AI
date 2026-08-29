@@ -12,6 +12,7 @@ import { useEffect, useReducer, useState } from "react";
 import type { FeelingSemantic } from "@/lib/types";
 import { normalizeFeelingId } from "@/lib/mockData";
 import { loadStudyRecords } from "@/lib/studyRecords";
+import { STRAIN_REASON_CHOICES } from "@/lib/studySupport";
 import {
   __getDevMoodOverride,
   __setDevMoodCheckState,
@@ -142,8 +143,14 @@ export default function StudyMoodDebugPanel() {
         </button>
       </div>
 
+      <p className="mt-2 text-cocoa">Support reason (조금 힘들어 → 선택)</p>
+      <p>
+        {STRAIN_REASON_CHOICES.map((c) => `${c.id}=${c.label}`).join(" · ")}
+      </p>
+
       <p className="mt-2 text-warm-gray/70">
-        Preset 설정 후 공부(20초) → 회고 통과 → finishing 에서 실제 확인 문구 확인.
+        [부정 3연속] + [6일 전으로] → mood check YES → 20초 공부 → 회고 → 조금 힘들어
+        → reason → support(LLM). 실패 시 reason별 fallback.
       </p>
     </div>
   );

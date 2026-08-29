@@ -6,6 +6,13 @@ import { reactionData, toMinutes } from "@/lib/mockData";
 import { loadRecentMemories } from "@/lib/studyRecords";
 import { evaluateMoodCheck, saveMoodCheckState } from "@/lib/studyMood";
 import {
+  getStudySupportFallback,
+  STRAIN_FREETEXT_PROMPT,
+  STRAIN_REASON_CHOICES,
+  STRAIN_REASON_PROMPT,
+  type StudyStrainReason,
+} from "@/lib/studySupport";
+import {
   characterNickname,
   characterSubject,
   type CharacterId,
@@ -63,12 +70,26 @@ export default function CharacterReaction({
   const [isFinishing, setIsFinishing] = useState(false);
 
   // 최근 공부 감정 패턴 감지(cooldown 통과 시에만). finishing step 에서 평소 마무리
-  // 대신 조심스러운 확인 + [괜찮아]/[조금 힘들어] 2지선다를 보여준다.
-  //   moodPhase: none  — 패턴 없음/쿨다운 → 기존 흐름 그대로
-  //              ask   — 확인 문구 + 2버튼
-  //              reply — 사용자가 답한 뒤 짧은 수용 문구 + [오늘 공부 마무리]
-  const [moodPhase, setMoodPhase] = useState<"none" | "ask" | "reply">("none");
+  // 대신 조심스러운 확인 → (조금 힘들어면) 어려움 선택 → 짧은 학습 도움을 보여준다.
+  //   none        패턴 없음/쿨다운 → 기존 흐름 그대로
+  //   ask         확인 문구 + [괜찮아] [조금 힘들어]
+  //   reason      "어떤 점이 버거웠어?" + reason 칩 5개 + "오늘은 그냥 마무리할래"
+  //   reasonText  "직접 말할래" → 짧은 자유 입력
+  //   reply       [괜찮아] / "그냥 마무리" 뒤 짧은 수용 문구 + [오늘 공부 마무리]
+  //   support     reason/자유입력 뒤 LLM 학습 도움(공감+관찰+제안 1) + [오늘 공부 마무리]
+  const [moodPhase, setMoodPhase] = useState<
+    "none" | "ask" | "reason" | "reasonText" | "reply" | "support"
+  >("none");
   const [moodReplyLine, setMoodReplyLine] = useState("");
+  const [reasonText, setReasonText] = useState("");
+  const [supportLine, setSupportLine] = useState("");
+  // finishing 진입 시점에 확정된 회고 Q&A — mood support 요청에 그대로 넘긴다.
+  const [reflectionPayload, setReflectionPayload] = useState<{
+    question: string;
+    answer: string;
+    followUpQuestion?: string;
+    followUpAnswer?: string;
+  } | null>(null);
 
   // evidence 는 내부 판단값이다 — 아래 dev 표시 외에는 사용자에게 보이지 않는다.
   const [evidence, setEvidence] = useState<ReflectionEvidence | null>(null);
@@ -239,6 +260,7 @@ export default function CharacterReaction({
       setClarityResult(clarity);
       // 최근 공부 감정 패턴 확인 여부(cooldown 포함). feelingId 는 위에서 non-null 확인됨.
       const mood = evaluateMoodCheck(feelingId);
+      setReflectionPayload({ question, answer: trimmed });
       const closing = await fetchClosingLine(
         { question, answer: trimmed },
         clarity ?? undefined,
@@ -310,6 +332,12 @@ export default function CharacterReaction({
 
     // 최근 공부 감정 패턴 확인 여부(cooldown 포함). feelingId 는 위에서 non-null 확인됨.
     const mood = evaluateMoodCheck(feelingId);
+    setReflectionPayload({
+      question,
+      answer: firstAnswer,
+      followUpQuestion,
+      followUpAnswer: trimmed,
+    });
     const closing = await fetchClosingLine(
       {
         question,
@@ -332,25 +360,100 @@ export default function CharacterReaction({
     if (submittedRef.current || feelingId === null) return;
     submittedRef.current = true;
     setIsFinishing(true);
-    // mood check 을 거쳤으면 done 화면/Memory 에 남길 문장은 확인 질문이 아니라
-    // 사용자의 답에 대한 짧은 수용 문구다.
+    // mood check 을 거친 종료는 support 조언이나 수용 문구가 아니라, clarity 를
+    // 반영하는 기존 마무리(voice.closingLine)를 남긴다. support 조언은 그 화면에서만.
     const finalLine =
-      moodPhase === "reply" && moodReplyLine ? moodReplyLine : closingLine;
+      moodPhase === "none"
+        ? closingLine
+        : voice.closingLine(subject, clarityResult ?? undefined);
     onSelectFeeling(feelingId, finalLine, clarityResult ?? undefined);
   };
 
-  // 3.5) mood check 응답 → 짧은 수용 문구 + cooldown 기록. 이후 [오늘 공부 마무리].
-  //      조언·계획 변경·reward 변화 없음. 저장 경로(onSelectFeeling)는 그대로.
+  // 3.5) mood check 응답 + cooldown 기록(양쪽 다 즉시). 이후:
+  //   괜찮아   → 짧은 수용 문구 → reply
+  //   조금 힘들어 → 바로 조언하지 않고 "무엇이 힘든지" 물어보는 reason 단계로
   const handleMoodReply = (outcome: "ok" | "hard") => {
     if (moodPhase !== "ask") return;
     saveMoodCheckState({
       lastPromptedAt: new Date().toISOString(),
       lastOutcome: outcome,
     });
-    setMoodReplyLine(
-      outcome === "ok" ? voice.moodCheck.acceptOk : voice.moodCheck.acceptHard,
-    );
+    if (outcome === "ok") {
+      setMoodReplyLine(voice.moodCheck.acceptOk);
+      setMoodPhase("reply");
+    } else {
+      setMoodPhase("reason");
+    }
+  };
+
+  // reason 단계에서 "오늘은 그냥 마무리할래" — 도움을 강요하지 않는다. LLM 호출 없음.
+  const handleSkipSupport = () => {
+    if (moodPhase !== "reason") return;
+    setMoodReplyLine(voice.moodCheck.acceptHard);
     setMoodPhase("reply");
+  };
+
+  // 사용자가 고른 어려움 + 최근 학습 기록을 참고해 짧은 도움 문장을 받는다.
+  // 실패/타임아웃이면 reason별 정적 fallback. 흐름을 막지 않는다.
+  const fetchMoodSupport = async (
+    reason: StudyStrainReason,
+    freeText?: string,
+  ) => {
+    if (busyRef.current || feelingId === null) return;
+    busyRef.current = true;
+    setIsLoading(true);
+
+    const recentMemories = loadRecentMemories(characterId);
+    let line = getStudySupportFallback(reason);
+    try {
+      const response = await fetch("/api/reaction", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          characterId,
+          subject,
+          targetMinutes: studySession.targetMinutes,
+          elapsedSeconds,
+          feelingId,
+          recentMemories,
+          ...(reflectionPayload ? { reflection: reflectionPayload } : {}),
+          ...(clarityResult ? { reflectionClarity: clarityResult } : {}),
+          moodSupport: { reason, ...(freeText ? { freeText } : {}) },
+        }),
+      });
+      if (response.ok) {
+        const data = (await response.json()) as { reaction?: unknown };
+        if (typeof data.reaction === "string" && data.reaction.trim() !== "") {
+          line = data.reaction.trim();
+        } else {
+          console.error("[CharacterReaction] 예상치 못한 mood-support 응답:", data);
+        }
+      } else {
+        console.error("[CharacterReaction] mood-support 실패:", response.status);
+      }
+    } catch (error) {
+      console.error("[CharacterReaction] mood-support 호출 오류:", error);
+    }
+    setSupportLine(line);
+    setMoodPhase("support");
+    setIsLoading(false);
+    busyRef.current = false;
+  };
+
+  const handlePickReason = (reason: StudyStrainReason) => {
+    if (busyRef.current || moodPhase !== "reason") return;
+    if (reason === "other") {
+      setMoodPhase("reasonText");
+      return;
+    }
+    void fetchMoodSupport(reason);
+  };
+
+  const handleSubmitReasonText = () => {
+    if (busyRef.current || moodPhase !== "reasonText") return;
+    const trimmed = reasonText.trim();
+    if (trimmed === "") return;
+    void fetchMoodSupport("other", trimmed);
   };
 
   // 상단 작은 캐릭터 + 이름. 입력 단계에서는 작게(sm) 줄여 textarea 를 위로 올린다.
@@ -487,7 +590,9 @@ export default function CharacterReaction({
   // step === "finishing"
   if (isLoading)
     return loadingView(
-      `${characterSubject(characterId)} 오늘 공부를 떠올리고 있어요...`,
+      moodPhase === "reason" || moodPhase === "reasonText"
+        ? `${characterSubject(characterId)} 잠깐 생각하고 있어요...`
+        : `${characterSubject(characterId)} 오늘 공부를 떠올리고 있어요...`,
     );
 
   // 최근 공부 감정 패턴이 감지됨 — 마무리 전에 조심스럽게 한 번만 확인한다.
@@ -512,6 +617,91 @@ export default function CharacterReaction({
             조금 힘들어
           </button>
         </div>
+        {devEvidenceLine}
+      </section>
+    );
+  }
+
+  // "조금 힘들어" → 바로 조언하지 않고 무엇이 힘든지 먼저 묻는다.
+  if (moodPhase === "reason") {
+    return (
+      <section className="flex flex-col items-center gap-4 px-6 pt-2">
+        {characterHeader("md", "curious")}
+        <div className="daon-bubble w-full max-w-[300px]">
+          {STRAIN_REASON_PROMPT}
+        </div>
+        <div className="flex flex-wrap justify-center gap-2">
+          {STRAIN_REASON_CHOICES.map((choice) => (
+            <button
+              key={choice.id}
+              type="button"
+              onClick={() => handlePickReason(choice.id)}
+              className="chip"
+            >
+              {choice.label}
+            </button>
+          ))}
+        </div>
+        <button
+          type="button"
+          onClick={handleSkipSupport}
+          className="text-sm text-warm-gray transition-colors hover:text-cocoa"
+        >
+          오늘은 그냥 마무리할래
+        </button>
+        {devEvidenceLine}
+      </section>
+    );
+  }
+
+  // "직접 말할래" → 짧은 자유 입력(회고 입력과 같은 UX).
+  if (moodPhase === "reasonText") {
+    return (
+      <section className="flex flex-col gap-3 px-6 pt-2">
+        {characterHeader("sm", "curious")}
+        <div className="daon-bubble">{STRAIN_FREETEXT_PROMPT}</div>
+        <textarea
+          value={reasonText}
+          onChange={(e) => setReasonText(e.target.value)}
+          maxLength={ANSWER_MAX_LENGTH}
+          rows={3}
+          placeholder="짧게 적어도 괜찮아요"
+          className="field resize-none"
+        />
+        <button
+          type="button"
+          disabled={reasonText.trim() === ""}
+          onClick={handleSubmitReasonText}
+          className="btn-primary"
+        >
+          말해주기
+        </button>
+        <button
+          type="button"
+          onClick={() => setMoodPhase("reason")}
+          className="text-sm text-warm-gray transition-colors hover:text-cocoa"
+        >
+          ← 이전
+        </button>
+        {devEvidenceLine}
+      </section>
+    );
+  }
+
+  // reason/자유입력 뒤: 짧은 학습 도움(공감 + 관찰 + 작은 제안 1). 표시 전용.
+  if (moodPhase === "support") {
+    return (
+      <section className="flex flex-col items-center gap-4 px-6 pt-2">
+        {characterHeader("md", "happy")}
+        <div className="daon-bubble w-full max-w-[300px]">{supportLine}</div>
+        <button
+          type="button"
+          disabled={isFinishing}
+          onClick={handleFinish}
+          className="btn-primary"
+        >
+          오늘 공부 마무리
+        </button>
         {devEvidenceLine}
       </section>
     );
