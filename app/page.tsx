@@ -9,8 +9,7 @@ import StudyCard from "@/components/study/StudyCard";
 import CharacterReaction from "@/components/reaction/CharacterReaction";
 import StudyCompletionScene from "@/components/summary/StudyCompletionScene";
 import StudyMemoryList from "@/components/memory/StudyMemoryList";
-import FriendStudySection from "@/components/friends/FriendStudySection";
-import FriendRoomsSection from "@/components/friends/FriendRoomsSection";
+import FriendsSection from "@/components/friends/FriendsSection";
 import FriendRoomScreen from "@/components/friends/FriendRoomScreen";
 import SocialCheckInScreen from "@/components/social/SocialCheckInScreen";
 import ReflectionTestPanel from "@/components/study/ReflectionTestPanel";
@@ -435,13 +434,6 @@ export default function Home() {
             />
           )}
 
-          {/* 개발자 모드 데모: 친구들이 공부 중인 분위기를 보여준다. 공부 시작 전
-              (idle)에만 노출해 [공부 시작] CTA 를 방해하지 않는다. studying /
-              reaction 에서는 아래 조건에 걸리지 않아 자동으로 숨겨진다. */}
-          {process.env.NODE_ENV === "development" && state.phase === "idle" && (
-            <FriendStudySection />
-          )}
-
           {/* 개발자 모드 전용: 타이머를 거치지 않고 preset으로 바로 reaction(회고)
               진입. idle에서만 노출되고, 클릭 즉시 phase가 바뀌며 사라진다 —
               별도 lock 없이 이 구조 자체가 연타 방어다. */}
@@ -454,9 +446,9 @@ export default function Home() {
             />
           )}
 
-          {/* 친구 공간: idle 에서만, 공부 시작 CTA 보다 아래. */}
+          {/* 친구들: idle 에서만, 공부 시작 CTA 보다 아래. */}
           {state.phase === "idle" && (
-            <FriendRoomsSection friends={friends} onVisit={setSelectedFriendId} />
+            <FriendsSection friends={friends} onVisit={setSelectedFriendId} />
           )}
 
           {state.phase === "reaction" && state.studySession && (
@@ -469,22 +461,19 @@ export default function Home() {
           )}
 
           {state.phase === "done" && state.studySession && state.selectedFeelingId && (
-            <>
-              <StudyCompletionScene
-                characterId={selectedCharacterId}
-                subject={state.studySession.subject}
-                elapsedSeconds={state.studySession.elapsedSeconds ?? 0}
-                feelingId={state.selectedFeelingId}
-                aiReaction={state.aiReaction}
-                equippedAccessoryId={customization.equippedAccessoryId}
-                reward={state.reward}
-                onStartNew={() => {
-                  recordSavedRef.current = false;
-                  dispatch({ type: "RESET" });
-                }}
-              />
-              {process.env.NODE_ENV === "development" && <FriendStudySection />}
-            </>
+            <StudyCompletionScene
+              characterId={selectedCharacterId}
+              subject={state.studySession.subject}
+              elapsedSeconds={state.studySession.elapsedSeconds ?? 0}
+              feelingId={state.selectedFeelingId}
+              aiReaction={state.aiReaction}
+              equippedAccessoryId={customization.equippedAccessoryId}
+              reward={state.reward}
+              onStartNew={() => {
+                recordSavedRef.current = false;
+                dispatch({ type: "RESET" });
+              }}
+            />
           )}
         </>
       )}
