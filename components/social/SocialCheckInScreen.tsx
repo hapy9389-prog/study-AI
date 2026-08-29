@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import FriendCharacter from "./FriendCharacter";
+import FriendClassroomScene from "./FriendClassroomScene";
+import FriendRoomScreen from "@/components/friends/FriendRoomScreen";
 import ScreenShell from "@/components/layout/ScreenShell";
+import { getFriendRoomProfile } from "@/lib/mockFriends";
 import type { FriendStudyStatus } from "@/lib/types";
 
 interface SocialCheckInScreenProps {
@@ -10,33 +12,9 @@ interface SocialCheckInScreenProps {
   onContinue: () => void;
 }
 
-// 앱 첫 진입 화면. 친구들의 "지금" 상태를 빠르게 보여주고 공부 자극을 준 뒤
-// 기존 홈으로 넘긴다. 오래 머무는 화면이 아니므로 친구 3명 + CTA 가 모바일
-// 한 화면 안에 들어오게 컴팩트하게 구성한다. 친구 목록 관리 화면이 아니다.
+// 앱 첫 진입 화면. 친구들이 "같은 교실에서 각자 공부하거나 쉬고 있는" 장면을
+// 보여주고 공부 자극을 준 뒤 기존 홈으로 넘긴다. 친구 목록 관리 화면이 아니다.
 const REFRESH_INTERVAL_MS = 30_000;
-
-// studying 친구의 경과 분. 인터벌은 리렌더 트리거일 뿐 누적 +1 이 아니다.
-// (FriendStudySection 의 동일 로직 — 데모 안정성 위해 리팩터링하지 않고 소규모 중복.)
-function elapsedMinutes(startedAt: number | undefined, now: number): number {
-  if (typeof startedAt !== "number") return 0;
-  return Math.max(0, Math.floor((now - startedAt) / 60_000));
-}
-
-// now 는 최초 렌더(SSR = hydration)에서 null 이다. 이때는 Date.now() 상대 계산을
-// 하지 않아 서버/클라 출력이 항상 같다("미적분 공부 중"). useEffect 로 now 가
-// 설정된 뒤에만 "· N분째" 를 붙인다.
-function statusLine(friend: FriendStudyStatus, now: number | null): string {
-  if (friend.status === "studying") {
-    if (now === null) {
-      return `${friend.subject} 공부 중`;
-    }
-    return `${friend.subject} 공부 중 · ${elapsedMinutes(friend.startedAt, now)}분째`;
-  }
-  if (friend.status === "completed") {
-    return `오늘 ${friend.subject} ${friend.todayStudyMinutes}분 공부했어요`;
-  }
-  return "지금은 쉬는 중";
-}
 
 export default function SocialCheckInScreen({
   friends,
@@ -45,6 +23,10 @@ export default function SocialCheckInScreen({
   // 최초 렌더는 deterministic 하게 null — hydration mismatch 방지. mount 후
   // useEffect 에서 실제 시각을 넣고 30초마다 갱신한다(리렌더 트리거 용도).
   const [now, setNow] = useState<number | null>(null);
+  // 교실에서 친구 자리를 탭하면 그 친구 방으로. page.tsx 의 화면 라우팅
+  // (showSocialCheckIn early-return)을 건드리지 않도록 여기서 직접 렌더한다 —
+  // FriendRoomScreen 이 자체 ScreenShell 을 가지므로 셸 중첩은 없다.
+  const [visitingId, setVisitingId] = useState<string | null>(null);
 
   useEffect(() => {
     // 첫 값은 setTimeout(0) 으로 넣는다 — effect 본문에서 직접 setState 하면
@@ -57,6 +39,20 @@ export default function SocialCheckInScreen({
       clearInterval(id);
     };
   }, []);
+
+  if (visitingId) {
+    const friend = friends.find((f) => f.id === visitingId);
+    const roomProfile = getFriendRoomProfile(visitingId);
+    if (friend && roomProfile) {
+      return (
+        <FriendRoomScreen
+          friend={friend}
+          roomProfile={roomProfile}
+          onBack={() => setVisitingId(null)}
+        />
+      );
+    }
+  }
 
   const studyingCount = friends.filter((f) => f.status === "studying").length;
   const summary =
@@ -74,25 +70,14 @@ export default function SocialCheckInScreen({
         </button>
       }
     >
-      <ul className="flex flex-col gap-2">
-        {friends.map((friend) => (
-          <li key={friend.id} className="list-row">
-            <FriendCharacter avatarId={friend.avatarId} status={friend.status} />
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium text-cocoa">{friend.nickname}</p>
-              <p className="truncate text-xs text-warm-gray">
-                {statusLine(friend, now)}
-              </p>
-            </div>
-            {friend.status === "studying" && (
-              <span
-                aria-hidden
-                className="mr-1 h-1.5 w-1.5 shrink-0 rounded-full bg-peach-deep"
-              />
-            )}
-          </li>
-        ))}
-      </ul>
+      {/* 장면을 억지로 늘리지 않고 위아래 작은 여백으로 제목~scene~CTA 균형만 잡는다. */}
+      <div className="mt-4 mb-2">
+        <FriendClassroomScene
+          friends={friends}
+          now={now}
+          onVisit={setVisitingId}
+        />
+      </div>
     </ScreenShell>
   );
 }

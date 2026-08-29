@@ -146,7 +146,13 @@ export type FriendStudyStatusType = "studying" | "completed" | "idle";
 
 // 친구별 캐릭터 외형 식별자. 지금은 CSS 일러스트로 렌더하고, 나중에
 // avatarId → /characters/<id>.webp 같은 실제 이미지로 교체하기 쉽게 union 으로 둔다.
-export type FriendAvatarId = "minsu" | "seoyeon" | "jihun";
+export type FriendAvatarId =
+  | "minsu"
+  | "seoyeon"
+  | "jihun"
+  | "yujin"
+  | "harin"
+  | "doyun";
 
 export interface FriendStudyStatus {
   id: string;

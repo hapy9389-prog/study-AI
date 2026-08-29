@@ -41,6 +41,27 @@ const AVATAR: Record<
     body: "bg-cocoa/55",
     accessory: "headphones",
   },
+  // 유진: 차분한 민트 계열 + 머리 리본
+  yujin: {
+    face: "bg-peach",
+    hair: "bg-[#8a6f57]",
+    body: "bg-mint/70",
+    accessory: "ribbon",
+  },
+  // 하린: 밝은 라벤더 + 안경
+  harin: {
+    face: "bg-peach",
+    hair: "bg-cocoa/70",
+    body: "bg-lavender-deep/70",
+    accessory: "glasses",
+  },
+  // 도윤: 따뜻한 피치 + 헤드폰
+  doyun: {
+    face: "bg-peach",
+    hair: "bg-cocoa",
+    body: "bg-peach-deep/70",
+    accessory: "headphones",
+  },
 };
 
 function StatusScene({ status }: { status: FriendStudyStatusType }) {

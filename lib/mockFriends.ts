@@ -38,6 +38,31 @@ export function createMockFriendStatuses(now: number): FriendStudyStatus[] {
       subject: "네트워크",
       todayStudyMinutes: 48,
     },
+    {
+      id: "friend-yujin",
+      nickname: "유진",
+      avatarId: "yujin",
+      status: "studying",
+      subject: "알고리즘",
+      startedAt: now - 12 * 60 * 1000, // 약 12분째
+      todayStudyMinutes: 12,
+    },
+    {
+      id: "friend-harin",
+      nickname: "하린",
+      avatarId: "harin",
+      status: "idle",
+      todayStudyMinutes: 0,
+    },
+    {
+      id: "friend-doyun",
+      nickname: "도윤",
+      avatarId: "doyun",
+      status: "studying",
+      subject: "제어공학",
+      startedAt: now - 51 * 60 * 1000, // 약 51분째
+      todayStudyMinutes: 51,
+    },
   ];
 }
 
@@ -64,6 +89,9 @@ export const FRIEND_ROOM_PROFILES: FriendRoomProfile[] = [
   { friendId: "friend-minsu", roomStage: 3, totalStudyMinutes: 420 },
   { friendId: "friend-seoyeon", roomStage: 1, totalStudyMinutes: 45 },
   { friendId: "friend-jihun", roomStage: 2, totalStudyMinutes: 165 },
+  { friendId: "friend-yujin", roomStage: 2, totalStudyMinutes: 210 },
+  { friendId: "friend-harin", roomStage: 1, totalStudyMinutes: 60 },
+  { friendId: "friend-doyun", roomStage: 3, totalStudyMinutes: 480 },
 ];
 
 export function getFriendRoomProfile(
