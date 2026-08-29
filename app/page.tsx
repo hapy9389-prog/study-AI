@@ -411,6 +411,15 @@ export default function Home() {
             />
           )}
 
+          {/* 내 공간 요약(누적시간·코인) + 방/꾸미기 진입 버튼 — Hero 장면과
+              공부 입력 사이. 홈의 가장 큰 CTA 가 되면 안 된다. */}
+          {state.phase === "idle" && (
+            <MyRoom
+              onOpenRoom={openMyRoomScreen}
+              onOpenCustomization={openCustomization}
+            />
+          )}
+
           {state.phase === "idle" && (
             <StudyCard
               phase="idle"
@@ -445,20 +454,9 @@ export default function Home() {
             />
           )}
 
-          {/* 내 공간 요약 + 친구 공간: idle 에서만, 공부 시작 CTA 보다 아래.
-              방 그림은 상단 Hero 에 이미 나오므로 여기서는 누적시간/코인/진입
-              버튼만 — 홈의 가장 큰 CTA 가 되면 안 된다. */}
+          {/* 친구 공간: idle 에서만, 공부 시작 CTA 보다 아래. */}
           {state.phase === "idle" && (
-            <>
-              <MyRoom
-                onOpenRoom={openMyRoomScreen}
-                onOpenCustomization={openCustomization}
-              />
-              <FriendRoomsSection
-                friends={friends}
-                onVisit={setSelectedFriendId}
-              />
-            </>
+            <FriendRoomsSection friends={friends} onVisit={setSelectedFriendId} />
           )}
 
           {state.phase === "reaction" && state.studySession && (

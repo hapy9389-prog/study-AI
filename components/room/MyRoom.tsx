@@ -8,8 +8,8 @@ import { loadStudyRewardState } from "@/lib/studyRewards";
 import type { CharacterAccessoryId, StudyRewardState } from "@/lib/types";
 
 // 홈 idle 화면의 "내 공간" 요약. 공부를 완료할수록 코인/누적 공부시간이 쌓인다.
-// 방 그림 자체는 상단 Hero(HomeHeroRoom)와 전체화면(MyRoomScreen)에서 보여주므로
-// 여기서는 성장 정보 + 진입 버튼만 담는다(중복 방지).
+// 방 그림은 상단 Hero(HomeHeroRoom)에서 보여주므로 여기서는 누적시간/코인 status
+// 와 방/꾸미기 진입 버튼만 담는다(방 그림 중복 방지).
 //
 // 이 컴포넌트는 idle 에서만 렌더되므로 매 공부 세션(→ RESET) 후 새로 마운트되고,
 // 그때 loadStudyRewardState() 로 최신 상태를 읽는다(StudyMemoryList 와 같은 패턴).
@@ -43,10 +43,7 @@ interface MyRoomProps {
   onOpenCustomization: () => void;
 }
 
-export default function MyRoom({
-  onOpenRoom,
-  onOpenCustomization,
-}: MyRoomProps) {
+export default function MyRoom({ onOpenRoom, onOpenCustomization }: MyRoomProps) {
   const [state] = useState<StudyRewardState>(() => loadStudyRewardState());
 
   return (
@@ -66,6 +63,8 @@ export default function MyRoom({
         </div>
       </dl>
 
+      {/* 방·캐릭터와 직접 관련된 secondary action. 동일 weight, 1:1 폭.
+          공부 시작 CTA 보다 강조되지 않는다. */}
       <div className="mt-3 flex gap-2">
         <button
           type="button"

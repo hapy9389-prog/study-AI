@@ -22,6 +22,13 @@ interface CharacterAreaProps {
   equippedAccessoryId?: CharacterAccessoryId | null;
 }
 
+// 홈 idle Hero 말풍선의 기본 문구. 지금은 캐릭터 공통 — 향후 이 자리를
+// characterId 기반 조회로 바꾸면 캐릭터별 home voice 가 연결된다.
+const HOME_GREETING = {
+  primary: "오늘은 뭐 공부할까?",
+  secondary: "끝나면 나도 알고 싶어!",
+};
+
 const expressionByPhase: Record<ViewState, Expression> = {
   idle: "curious",
   studying: "quiet",
@@ -47,21 +54,17 @@ export default function CharacterArea({
   roomStage = 1,
   equippedAccessoryId,
 }: CharacterAreaProps) {
-  // idle: 동반자가 "실제 내 방 안에" 있는 모습이 먼저 보이고, 그 아래 공부 입력이
-  // 화면의 주인공이 된다 — 캐릭터 단독 씬으로 상단을 크게 차지하지 않는다.
+  // idle: 동반자가 "실제 내 방 안에" 있는 모습이 먼저 보이고, 말풍선도 그 방
+  // 장면 안에 얹힌다 — 캐릭터가 방에서 말을 거는 하나의 장면. 그 아래 공부 입력이
+  // 화면의 주인공이 된다.
   if (phase === "idle") {
     return (
-      <section className="flex flex-col gap-3">
-        <HomeHeroRoom
-          characterId={characterId}
-          roomStage={roomStage}
-          equippedAccessoryId={equippedAccessoryId ?? null}
-        />
-        <div className="daon-bubble mx-6 max-w-[280px] self-start">
-          <p>오늘은 뭐 공부할까?</p>
-          <p className="text-warm-gray">끝나면 나도 알고 싶어!</p>
-        </div>
-      </section>
+      <HomeHeroRoom
+        characterId={characterId}
+        roomStage={roomStage}
+        equippedAccessoryId={equippedAccessoryId ?? null}
+        speech={HOME_GREETING}
+      />
     );
   }
 
