@@ -6,9 +6,8 @@ import type { NavTab } from "@/components/layout/BottomNavigation";
 import CharacterArea from "@/components/character/CharacterArea";
 import StudyCard from "@/components/study/StudyCard";
 import CharacterReaction from "@/components/reaction/CharacterReaction";
-import StudyMemoryCard from "@/components/memory/StudyMemoryCard";
+import StudyCompletionScene from "@/components/summary/StudyCompletionScene";
 import StudyMemoryList from "@/components/memory/StudyMemoryList";
-import StudyRecordSummary from "@/components/summary/StudyRecordSummary";
 import FriendStudySection from "@/components/friends/FriendStudySection";
 import FriendRoomsSection from "@/components/friends/FriendRoomsSection";
 import FriendRoomScreen from "@/components/friends/FriendRoomScreen";
@@ -16,7 +15,6 @@ import SocialCheckInScreen from "@/components/social/SocialCheckInScreen";
 import ReflectionTestPanel from "@/components/study/ReflectionTestPanel";
 import MyRoom from "@/components/room/MyRoom";
 import MyRoomScreen from "@/components/room/MyRoomScreen";
-import RewardResultCard from "@/components/room/RewardResultCard";
 import CharacterCustomization from "@/components/customization/CharacterCustomization";
 import CharacterSelectScreen from "@/components/character/CharacterSelectScreen";
 import { DEFAULT_CHARACTER_ID, type CharacterId } from "@/lib/characters";
@@ -400,12 +398,17 @@ export default function Home() {
         </div>
       ) : (
         <>
-          <CharacterArea
-            phase={state.phase}
-            characterId={selectedCharacterId}
-            roomStage={rewardState.roomStage}
-            equippedAccessoryId={customization.equippedAccessoryId}
-          />
+          {/* idle 상단 Hero 방(캐릭터가 방 안에 있는 모습). studying 은 위쪽 별도
+              분기에서 자체 CharacterArea 를 그린다. reaction / done 은 각 화면이
+              직접 작은 캐릭터(PostStudyCharacter)를 둔다. */}
+          {state.phase === "idle" && (
+            <CharacterArea
+              phase="idle"
+              characterId={selectedCharacterId}
+              roomStage={rewardState.roomStage}
+              equippedAccessoryId={customization.equippedAccessoryId}
+            />
+          )}
 
           {state.phase === "idle" && (
             <StudyCard
@@ -461,35 +464,26 @@ export default function Home() {
             <CharacterReaction
               characterId={selectedCharacterId}
               studySession={state.studySession}
+              equippedAccessoryId={customization.equippedAccessoryId}
               onSelectFeeling={handleSelectFeeling}
             />
           )}
 
           {state.phase === "done" && state.studySession && state.selectedFeelingId && (
             <>
-              <StudyMemoryCard
+              <StudyCompletionScene
                 characterId={selectedCharacterId}
-                studySession={state.studySession}
+                subject={state.studySession.subject}
+                elapsedSeconds={state.studySession.elapsedSeconds ?? 0}
                 feelingId={state.selectedFeelingId}
                 aiReaction={state.aiReaction}
+                equippedAccessoryId={customization.equippedAccessoryId}
+                reward={state.reward}
+                onStartNew={() => {
+                  recordSavedRef.current = false;
+                  dispatch({ type: "RESET" });
+                }}
               />
-              <StudyRecordSummary
-                studySession={state.studySession}
-                feelingId={state.selectedFeelingId}
-              />
-              {state.reward && <RewardResultCard reward={state.reward} />}
-              <div className="mx-6">
-                <button
-                  type="button"
-                  onClick={() => {
-                    recordSavedRef.current = false;
-                    dispatch({ type: "RESET" });
-                  }}
-                  className="btn-primary"
-                >
-                  새 공부 시작하기
-                </button>
-              </div>
               {process.env.NODE_ENV === "development" && <FriendStudySection />}
             </>
           )}

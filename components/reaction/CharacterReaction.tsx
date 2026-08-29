@@ -1,15 +1,27 @@
 "use client";
 
 import { useRef, useState } from "react";
+import PostStudyCharacter from "@/components/character/PostStudyCharacter";
 import { reactionData, toMinutes } from "@/lib/mockData";
 import { loadRecentMemories } from "@/lib/studyRecords";
-import { characterSubject, type CharacterId } from "@/lib/characters";
+import {
+  characterNickname,
+  characterSubject,
+  type CharacterId,
+} from "@/lib/characters";
 import { getCharacterVoice } from "@/lib/characterVoice";
-import type { FeelingChoice, ReflectionEvidence, StudySession } from "@/lib/types";
+import type {
+  CharacterAccessoryId,
+  FeelingChoice,
+  ReflectionEvidence,
+  StudySession,
+} from "@/lib/types";
 
 interface CharacterReactionProps {
   characterId: CharacterId;
   studySession: StudySession;
+  /** 장착된 액세서리(있으면). 상단 작은 캐릭터에 그대로 반영. */
+  equippedAccessoryId?: CharacterAccessoryId | null;
   onSelectFeeling: (feelingId: FeelingChoice["id"], aiReaction?: string) => void;
 }
 
@@ -22,6 +34,9 @@ interface CharacterReactionProps {
 //   followup    추가 질문 1개 + 답변 (판단 재실행 없음 — 질문은 최대 2개)
 //   finishing   /api/reaction 마무리 한마디 + [오늘 공부 마무리] → onSelectFeeling → done
 // 자유 채팅 아님. 질문 최대 2개. 사용자 화면에 evidence/점수/검증 표시 없음.
+//
+// 화면은 카드로 감싸지 않는다 — cream 배경 위 하나의 조용한 장면. 계층은 작은
+// 캐릭터 + 말풍선(daon-bubble) + spacing 으로만 만든다.
 type ReflectionStep = "feeling" | "reflection" | "followup" | "finishing";
 
 const ANSWER_MAX_LENGTH = 300;
@@ -29,6 +44,7 @@ const ANSWER_MAX_LENGTH = 300;
 export default function CharacterReaction({
   characterId,
   studySession,
+  equippedAccessoryId,
   onSelectFeeling,
 }: CharacterReactionProps) {
   const [step, setStep] = useState<ReflectionStep>("feeling");
@@ -229,8 +245,27 @@ export default function CharacterReaction({
     onSelectFeeling(feelingId, closingLine);
   };
 
+  // 상단 작은 캐릭터 + 이름. 입력 단계에서는 작게(sm) 줄여 textarea 를 위로 올린다.
+  const characterHeader = (
+    headerSize: "sm" | "md",
+    expression: "curious" | "happy",
+  ) => (
+    <div className="flex flex-col items-center gap-1">
+      <PostStudyCharacter
+        characterId={characterId}
+        expression={expression}
+        accessoryId={equippedAccessoryId}
+        size={headerSize}
+      />
+      <p className="text-xs font-medium text-warm-gray">
+        {characterNickname(characterId)}
+      </p>
+    </div>
+  );
+
+  // 조용한 로딩 — 큰 spinner/"분석 중" 대신 quiet-dot 3점. 높이를 크게 바꾸지 않는다.
   const loadingView = (text: string) => (
-    <section className="card mx-6 flex min-h-[168px] flex-col items-center justify-center gap-3">
+    <section className="flex min-h-[184px] flex-col items-center justify-center gap-3 px-6">
       <span aria-hidden className="flex gap-1.5">
         <span className="motion-safe:animate-quiet-dot h-1.5 w-1.5 rounded-full bg-lavender-deep" />
         <span className="motion-safe:animate-quiet-dot h-1.5 w-1.5 rounded-full bg-lavender-deep [animation-delay:0.2s]" />
@@ -244,23 +279,19 @@ export default function CharacterReaction({
   // 이 분기와 문자열이 통째로 제거된다.
   const devEvidenceLine =
     process.env.NODE_ENV === "development" && evidence ? (
-      <p className="mt-2 text-[10px] text-warm-gray/60">
+      <p className="text-[10px] text-warm-gray/60">
         Dev · evidence: {evidence}
         {assessmentFallback ? " (fallback)" : ""}
         {followUpQuestion ? " · follow-up: yes" : ""}
       </p>
     ) : null;
 
-  // reflection · followup 단계의 답변 입력 UI (동일 형태). onClick 핸들러만 다르다.
-  const answerFieldClass = "field mt-3 resize-none";
-  const submitButtonClass = "btn-primary mt-3";
-
   if (step === "feeling") {
     return (
-      <section className="card mx-6 min-h-[168px]">
-        <div className="daon-bubble">{characterLine}</div>
-
-        <div className="mt-4 flex flex-wrap gap-2">
+      <section className="flex flex-col items-center gap-4 px-6 pt-2">
+        {characterHeader("md", "curious")}
+        <div className="daon-bubble w-full max-w-[300px]">{characterLine}</div>
+        <div className="flex flex-wrap justify-center gap-2">
           {reactionData.choices.map((choice) => (
             <button
               key={choice.id}
@@ -284,7 +315,8 @@ export default function CharacterReaction({
       );
 
     return (
-      <section className="card mx-6 min-h-[168px]">
+      <section className="flex flex-col gap-3 px-6 pt-2">
+        {characterHeader("sm", "curious")}
         <div className="daon-bubble">{question}</div>
         <textarea
           value={answer}
@@ -292,13 +324,13 @@ export default function CharacterReaction({
           maxLength={ANSWER_MAX_LENGTH}
           rows={3}
           placeholder="짧게 적어도 괜찮아요"
-          className={answerFieldClass}
+          className="field resize-none"
         />
         <button
           type="button"
           disabled={isLoading || answer.trim() === ""}
           onClick={handleSubmitAnswer}
-          className={submitButtonClass}
+          className="btn-primary"
         >
           말해주기
         </button>
@@ -313,7 +345,13 @@ export default function CharacterReaction({
       );
 
     return (
-      <section className="card mx-6 min-h-[168px]">
+      <section className="flex flex-col gap-3 px-6 pt-2">
+        {characterHeader("sm", "curious")}
+        {/* 첫 대화를 조용히 남겨 "이어지는 두 번째 질문"으로 읽히게 한다. */}
+        <div className="space-y-0.5 border-l-2 border-warm-line pl-3 opacity-60">
+          <p className="text-xs text-warm-gray">{question}</p>
+          <p className="text-xs text-cocoa">{firstAnswer}</p>
+        </div>
         <div className="daon-bubble">{followUpQuestion}</div>
         <textarea
           value={answer}
@@ -321,13 +359,13 @@ export default function CharacterReaction({
           maxLength={ANSWER_MAX_LENGTH}
           rows={3}
           placeholder="짧게 적어도 괜찮아요"
-          className={answerFieldClass}
+          className="field resize-none"
         />
         <button
           type="button"
           disabled={isLoading || answer.trim() === ""}
           onClick={handleSubmitFollowUp}
-          className={submitButtonClass}
+          className="btn-primary"
         >
           말해주기
         </button>
@@ -337,17 +375,20 @@ export default function CharacterReaction({
   }
 
   // step === "finishing"
-  if (isLoading) return loadingView("다온이가 오늘 공부를 떠올리고 있어요...");
+  if (isLoading)
+    return loadingView(
+      `${characterSubject(characterId)} 오늘 공부를 떠올리고 있어요...`,
+    );
 
   return (
-    <section className="card mx-6 min-h-[168px]">
-      <div className="daon-bubble">{closingLine}</div>
-
+    <section className="flex flex-col items-center gap-4 px-6 pt-2">
+      {characterHeader("md", "happy")}
+      <div className="daon-bubble w-full max-w-[300px]">{closingLine}</div>
       <button
         type="button"
         disabled={isFinishing}
         onClick={handleFinish}
-        className="btn-primary mt-4"
+        className="btn-primary"
       >
         오늘 공부 마무리
       </button>
