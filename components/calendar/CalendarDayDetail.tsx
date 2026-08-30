@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { getDailyPlanProgress } from "@/lib/dailyStudyPlan";
 import { getDailyStudyTotalSeconds } from "@/lib/calendarMemory";
 import { formatTotalStudyTime } from "@/lib/mockData";
@@ -38,6 +39,15 @@ export default function CalendarDayDetail({
   const hasPlan = progress.length > 0;
   const hasRecords = dayRecords.length > 0;
 
+  // 한 번에 하나의 기록만 펼친다. 날짜를 바꾸면 CalendarScreen이 이 컴포넌트를
+  // key={selectedDayStart}로 리마운트해서, 이전 날짜에서 열려 있던 기록이
+  // 그대로 남지 않고 항상 닫힌 상태로 시작한다.
+  const [expandedRecordId, setExpandedRecordId] = useState<string | null>(null);
+
+  function handleToggleRecord(recordId: string) {
+    setExpandedRecordId((current) => (current === recordId ? null : recordId));
+  }
+
   return (
     <section className="flex flex-col gap-4">
       <header>
@@ -75,12 +85,22 @@ export default function CalendarDayDetail({
         </div>
       )}
 
+      {hasPlan && hasRecords && <div className="border-t border-warm-line pt-4" />}
+
       {hasRecords && (
-        <ul className="flex flex-col gap-3">
-          {dayRecords.map((record) => (
-            <MemoryRecordCard key={record.id} record={record} />
-          ))}
-        </ul>
+        <div className="flex flex-col gap-1">
+          <p className="text-xs font-medium text-warm-gray">그날 공부</p>
+          <ul className="flex flex-col">
+            {dayRecords.map((record) => (
+              <MemoryRecordCard
+                key={record.id}
+                record={record}
+                isExpanded={expandedRecordId === record.id}
+                onToggle={handleToggleRecord}
+              />
+            ))}
+          </ul>
+        </div>
       )}
 
       {!hasPlan && !hasRecords && (

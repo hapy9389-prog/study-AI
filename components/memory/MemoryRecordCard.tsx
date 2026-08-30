@@ -3,7 +3,29 @@
 import type { ReflectionEvidence, StudyRecord } from "@/lib/types";
 import { clarityNote, formatMinutesAndSeconds } from "@/lib/mockData";
 import { characterNickname } from "@/lib/characters";
-import { feelingLabel, formatCompletedAt, recordCharacterId } from "@/lib/studyRecords";
+import { feelingLabel, recordCharacterId } from "@/lib/studyRecords";
+
+// 접힌 행 오른쪽의 펼침 표시. BottomNavigation과 같은 line-icon 스타일
+// (stroke=currentColor, round cap/join) — 아이콘 라이브러리를 새로 쓰지 않는다.
+// 펼쳐지면 180도 회전만 시켜 위쪽을 가리키게 한다(별도 path 없음).
+function ChevronIcon({ isExpanded }: { isExpanded: boolean }) {
+  return (
+    <svg
+      width={14}
+      height={14}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.8}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      className={`shrink-0 text-warm-gray transition-transform ${isExpanded ? "rotate-180" : ""}`}
+    >
+      <path d="M6 9l6 6 6-6" />
+    </svg>
+  );
+}
 
 // clarity 가 partial/unclear 인 카드의 흐릿한 decorative 레이어.
 // 콘텐츠와 분리된 presentation 전용 — blur/opacity 는 여기(단색 반투명 shape)에만
@@ -50,13 +72,16 @@ function MemoryHaze({ clarity }: { clarity?: ReflectionEvidence }) {
 
 interface MemoryRecordCardProps {
   record: StudyRecord;
+  isExpanded: boolean;
+  onToggle: (id: string) => void;
 }
 
-// 공부 기록 1건 카드. 원래 "기억" 탭(StudyMemoryList)의 카드 렌더 로직을
-// 그대로 옮긴 것 — Calendar 날짜 상세(CalendarDayDetail)에서 재사용한다.
-// 저장된 다온 문장을 그대로 표시한다. Claude API를 재호출하지 않는다.
-export default function MemoryRecordCard({ record }: MemoryRecordCardProps) {
-  // "흐릿함"은 라벨 + 왼쪽 tick 대비 + 카드 뒤 haze 로만 표현한다.
+// 공부 기록 1건. 기본은 subject + 공부시간만 보이는 compact 행이고, 누르면
+// 그 자리에서 다온 반응/기분/clarity 상세가 펼쳐진다(한 번에 하나만 —
+// expandedRecordId는 CalendarDayDetail이 들고 있다). 저장된 다온 문장을
+// 그대로 표시할 뿐 Claude API를 재호출하지 않는다.
+export default function MemoryRecordCard({ record, isExpanded, onToggle }: MemoryRecordCardProps) {
+  // "흐릿함"은 라벨 + 왼쪽 tick 대비 + haze 로만 표현한다.
   // 콘텐츠 텍스트는 손대지 않는다 — 과거 공부 내용은 항상 또렷하게 읽혀야 한다.
   const note = clarityNote(record.reflectionClarity);
   const tickClass =
@@ -67,32 +92,40 @@ export default function MemoryRecordCard({ record }: MemoryRecordCardProps) {
         : "border-peach-deep/50";
 
   return (
-    <li className={`card border-l-2 ${tickClass} relative overflow-hidden`}>
-      <MemoryHaze clarity={record.reflectionClarity} />
-      <div className="relative z-10">
-        <div className="flex items-baseline justify-between gap-3">
-          <span className="font-serif text-base font-bold text-cocoa">
-            {record.subject}
-          </span>
-          <span className="shrink-0 text-xs text-warm-gray">
-            {formatCompletedAt(record.completedAt)}
-          </span>
+    <li>
+      <button
+        type="button"
+        onClick={() => onToggle(record.id)}
+        aria-expanded={isExpanded}
+        className="flex w-full items-center justify-between gap-3 py-2 text-left"
+      >
+        <span className="min-w-0 truncate text-sm text-cocoa">{record.subject}</span>
+        <span className="flex shrink-0 items-center gap-1 text-xs text-warm-gray">
+          {formatMinutesAndSeconds(record.elapsedSeconds)}
+          <ChevronIcon isExpanded={isExpanded} />
+        </span>
+      </button>
+
+      {isExpanded && (
+        <div className={`relative overflow-hidden border-l-2 ${tickClass} py-2 pl-3`}>
+          <MemoryHaze clarity={record.reflectionClarity} />
+          <div className="relative z-10">
+            <p className="text-xs text-warm-gray">
+              실제 공부 {formatMinutesAndSeconds(record.elapsedSeconds)} ·{" "}
+              {feelingLabel(record.feelingId)}
+            </p>
+
+            {note && <p className="mt-0.5 text-[11px] text-warm-gray/70">{note}</p>}
+
+            <div className="daon-bubble mt-3">
+              <span className="mr-1 text-xs font-medium text-lavender-deep">
+                {characterNickname(recordCharacterId(record))}
+              </span>
+              {record.characterReaction}
+            </div>
+          </div>
         </div>
-
-        <p className="mt-1 text-xs text-warm-gray">
-          실제 공부 {formatMinutesAndSeconds(record.elapsedSeconds)} ·{" "}
-          {feelingLabel(record.feelingId)}
-        </p>
-
-        {note && <p className="mt-0.5 text-[11px] text-warm-gray/70">{note}</p>}
-
-        <div className="daon-bubble mt-3">
-          <span className="mr-1 text-xs font-medium text-lavender-deep">
-            {characterNickname(recordCharacterId(record))}
-          </span>
-          {record.characterReaction}
-        </div>
-      </div>
+      )}
     </li>
   );
 }

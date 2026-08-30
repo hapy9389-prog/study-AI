@@ -126,6 +126,9 @@ export default function CalendarScreen() {
       />
 
       <CalendarDayDetail
+        // 날짜가 바뀌면 CalendarDayDetail의 펼침(expandedRecordId) 상태를
+        // 새로 시작한다 — useEffect로 리셋하는 대신 key로 리마운트한다.
+        key={selectedDayStart}
         selectedDayStart={selectedDayStart}
         isToday={selectedDayStart === todayDayStart}
         planForDay={planForDay}
