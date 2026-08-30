@@ -1,8 +1,24 @@
+import type { ReactNode } from "react";
 import CharacterFace from "./CharacterFace";
 import type { CharacterAccessoryId, Expression } from "@/lib/types";
-import type { CharacterId } from "@/lib/characters";
+import {
+  DEFAULT_CHARACTER_ID,
+  getCharacter,
+  type CharacterId,
+  type SceneTraitId,
+} from "@/lib/characters";
 
 export type SceneKind = "resting" | "studying";
+
+// 장면 한정 포즈(sceneTrait) 레지스트리 — resting scene에서만 조회한다. signature와
+// 달리 실루엣 식별 대상이 아니라 보너스 표현이라, characterId가 아니라 sceneTrait id로
+// 판단한다(Phase 2에서 다른 캐릭터가 같은 sceneTrait을 가져도 자동으로 같은 연출을
+// 받는다). 지금은 1개뿐이지만 늘어나도 이 컴포넌트의 분기는 늘지 않는다.
+const SCENE_TRAITS: Partial<Record<SceneTraitId, ReactNode>> = {
+  "book-on-lap": (
+    <span className="absolute bottom-2 left-1/2 z-20 h-3 w-14 -translate-x-1/2 rounded-sm bg-warm-gray/30" />
+  ),
+};
 
 interface CharacterSceneProps {
   scene: SceneKind;
@@ -32,6 +48,13 @@ export default function CharacterScene({
       ? "h-40 w-40 opacity-90 motion-safe:animate-lamp-breathe"
       : "h-28 w-28 opacity-55";
 
+  // resting scene 에서만 캐릭터의 sceneTrait(장면 한정 포즈)을 얹는다. 실루엣 식별
+  // 대상이 아니라 보너스 표현이라 studying 에는 그리지 않는다.
+  const sceneTrait = getCharacter(characterId ?? DEFAULT_CHARACTER_ID).visual
+    .sceneTrait;
+  const sceneTraitNode =
+    scene === "resting" && sceneTrait ? SCENE_TRAITS[sceneTrait] : null;
+
   return (
     <div className="relative flex h-40 w-full max-w-[280px] items-end justify-center">
       <span
@@ -55,6 +78,7 @@ export default function CharacterScene({
           {/* 소파 / 쿠션 */}
           <span className="absolute bottom-0 h-10 w-60 rounded-[28px] bg-cream-deep" />
           <span className="absolute bottom-6 h-16 w-44 rounded-[28px] bg-peach/25" />
+          {sceneTraitNode}
         </>
       )}
       <div className="relative z-10 pb-2">

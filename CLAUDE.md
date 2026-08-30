@@ -140,3 +140,11 @@
 장식 요소를 많이 만드는 것이 목적이 아니다.
 
 기존 디자인 시스템의 상세 기준은 별도 디자인 문서가 있다면 그것을 우선 참고한다.
+
+
+## Character design
+
+캐릭터 관련 설계/수정 시 프로젝트 루트의
+`CHARACTER_RESEARCH.md`와 `CHARACTER_DESIGN.md`를 반드시 먼저 읽는다.
+
+사용자 니즈 판단은 `CHARACTER_RESEARCH.md`를 우선 참고한다.
