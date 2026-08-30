@@ -31,7 +31,7 @@ export default function DailyPlanHomeSection({
         <button
           type="button"
           onClick={onOpenPlanScreen}
-          className="text-xs font-medium text-warm-gray transition-colors hover:text-cocoa"
+          className="text-sm font-medium text-cocoa transition-opacity hover:opacity-80"
         >
           오늘 계획 정하기
         </button>
@@ -42,7 +42,7 @@ export default function DailyPlanHomeSection({
   return (
     <section className="px-6">
       <div className="flex items-baseline justify-between">
-        <p className="text-xs font-medium text-warm-gray">오늘 계획</p>
+        <p className="text-sm font-semibold text-cocoa">오늘 계획</p>
         <button
           type="button"
           onClick={onOpenPlanScreen}
