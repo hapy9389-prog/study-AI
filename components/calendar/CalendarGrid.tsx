@@ -5,10 +5,25 @@ import type { CalendarDaySummary } from "@/lib/calendarMemory";
 import type { ReflectionEvidence } from "@/lib/types";
 import { WEEKDAY_LABELS } from "@/lib/studyStats";
 
+// partial/unclear가 공유하는 구름 실루엣. 겹치는 원 2개 + 둥근 밑변 사각형을
+// 전부 같은 currentColor로 채워서(겹침 경계선 없음) 별도 path 튜닝 없이
+// 안정적으로 구름 모양이 나오게 한다.
+function CloudGlyph({ className }: { className: string }) {
+  return (
+    <svg width="9" height="9" viewBox="0 0 10 10" aria-hidden="true" className={className}>
+      <circle cx="3.4" cy="4.6" r="1.5" fill="currentColor" />
+      <circle cx="6.1" cy="4" r="1.9" fill="currentColor" />
+      <rect x="1.6" y="5" width="6.8" height="2.6" rx="1.3" fill="currentColor" />
+    </svg>
+  );
+}
+
 // 날짜 셀 clarity 마커. emoji 대신 다른 탭과 같은 인라인 SVG line-icon 언어를
-// 그대로 쓴다(components/layout/BottomNavigation.tsx 참고). 흐림(blur)은 항상
-// decorative aria-hidden span에만 건다 — 숫자/텍스트에는 절대 걸지 않는다
-// (components/memory/MemoryRecordCard.tsx의 MemoryHaze와 같은 원칙).
+// 그대로 쓴다(components/layout/BottomNavigation.tsx 참고). "선명도"를 날씨
+// 은유로 표현한다 — clear=sparkle, partial/unclear=구름(흐릴수록 옅고 안개
+// haze가 붙는다). 흐림(blur)은 항상 decorative aria-hidden span에만 건다 —
+// 숫자/텍스트에는 절대 걸지 않는다(components/memory/MemoryRecordCard.tsx의
+// MemoryHaze와 같은 원칙).
 function ClarityMark({
   clarity,
   hasRecords,
@@ -26,28 +41,16 @@ function ClarityMark({
     );
   }
   if (clarity === "partial") {
-    return (
-      <svg width="9" height="9" viewBox="0 0 10 10" aria-hidden="true" className="text-cocoa/60">
-        <circle cx="5" cy="5" r="3.5" fill="none" stroke="currentColor" strokeWidth="1.4" />
-      </svg>
-    );
+    return <CloudGlyph className="text-cocoa/55" />;
   }
   if (clarity === "unclear") {
     return (
       <span className="relative inline-flex h-[9px] w-[9px] items-center justify-center">
         <span
           aria-hidden="true"
-          className="pointer-events-none absolute -inset-1 rounded-full bg-cocoa/12 blur-sm"
+          className="pointer-events-none absolute -inset-2 rounded-full bg-cocoa/18 blur-sm"
         />
-        <svg
-          width="9"
-          height="9"
-          viewBox="0 0 10 10"
-          aria-hidden="true"
-          className="relative text-cocoa/35"
-        >
-          <circle cx="5" cy="5" r="3.5" fill="none" stroke="currentColor" strokeWidth="1.4" />
-        </svg>
+        <CloudGlyph className="relative text-cocoa/18" />
       </span>
     );
   }
