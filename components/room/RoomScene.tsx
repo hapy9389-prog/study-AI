@@ -10,6 +10,12 @@ interface RoomSceneProps {
    */
   character: ReactNode;
   /**
+   * 방 안의 추가 소품 오버레이(예: components/room/RoomDecoration.tsx). 캐릭터와
+   * 의미가 섞이지 않도록 별도 slot으로 둔다. 생략(undefined)하면 아무것도
+   * 렌더되지 않아 이 prop을 넘기지 않는 기존 화면은 그대로다.
+   */
+  decorations?: ReactNode;
+  /**
    * "default"(생략) = 기존 크기(MyRoom / MyRoomScreen / FriendRoomScreen).
    * "hero" = 홈 idle 상단에서 조금 더 크게. 프레임 높이만 바뀐다.
    */
@@ -28,6 +34,7 @@ interface RoomSceneProps {
 export default function RoomScene({
   stage,
   character,
+  decorations,
   size = "default",
 }: RoomSceneProps) {
   // hero(홈 상단)는 화면 최상단이라 mt 없이. 높이는 기존과 동일하게 둬서 공부
@@ -88,6 +95,9 @@ export default function RoomScene({
       {stage >= 3 && (
         <span className="absolute left-6 top-4 h-6 w-8 rounded-sm border border-cocoa/20" />
       )}
+
+      {/* 이 친구/플레이어만의 소품(선택적) — 캐릭터보다 먼저 그려 항상 뒤에 있다 */}
+      {decorations}
 
       {/* 캐릭터 — 항상 방 안에 있다 */}
       {character}

@@ -190,6 +190,13 @@ export interface FriendStudyStatus {
   todayStudyMinutes: number;
 }
 
+// RoomScene 안에 놓이는 작은 소품 하나. "누구의 방이냐"와 무관한 일반 개념이라
+// FriendRoomProfile 전용이 아니다 — 지금은 친구 mock 데이터에서만 값을 채우지만,
+// 나중에 플레이어 자신의 방 꾸미기가 생기면 그대로 재사용한다(components/room/RoomDecoration.tsx).
+// RoomScene 이 stage 2/3 에서 자동으로 그리는 러그/스탠드/식물/책장/벽장식과는
+// 겹치지 않는, 완전히 다른 소품만 이 union 에 넣는다(중복 렌더 방지).
+export type RoomDecorationId = "cushion" | "poster" | "fairy-lights" | "photo-frame";
+
 // 친구에게 공개되는 Study Space 프로필. My Study Space(실제 localStorage)와 같은
 // "공개 정보" 개념 — 캐릭터·방 성장·공부시간까지만. coin·회고 답변·evidence·
 // CharacterGrowth 관심도 같은 개인 정보는 절대 넣지 않는다. 향후 실제 서버가
@@ -200,6 +207,11 @@ export interface FriendRoomProfile {
   friendId: string;
   roomStage: RoomStage;
   totalStudyMinutes: number;
+  /**
+   * stage 와 별개로 이 친구만의 방 개성을 준다. 같은 roomStage 친구끼리도
+   * 서로 다른 값을 가져야 "다 같은 stage 템플릿"처럼 보이지 않는다.
+   */
+  decorations: RoomDecorationId[];
 }
 
 // idle: 오늘 공부할 내용/목표 시간 입력

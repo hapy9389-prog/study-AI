@@ -85,13 +85,47 @@ export function getFriendStudyStatuses(now: number = Date.now()): FriendStudySta
 // 친구별 공개 방 프로필(Study Space). 친구마다 공부량/방 성장 차이가 보이도록
 // 서로 다르게 둔다. 시간과 무관한 정적 값이라 캐시/now 가 필요 없다.
 // todayStudyMinutes 는 FriendStudyStatus 에서 읽는다(민수 34 / 서연 0 / 지훈 48).
+//
+// decorations 는 roomStage 와 별개의 축이다 — 같은 stage 친구끼리(1: 서연/하린,
+// 2: 지훈/유진, 3: 민수/도윤)도 서로 다른 조합을 줘서 "다 같은 stage 방"처럼
+// 보이지 않게 한다.
 export const FRIEND_ROOM_PROFILES: FriendRoomProfile[] = [
-  { friendId: "friend-minsu", roomStage: 3, totalStudyMinutes: 420 },
-  { friendId: "friend-seoyeon", roomStage: 1, totalStudyMinutes: 45 },
-  { friendId: "friend-jihun", roomStage: 2, totalStudyMinutes: 165 },
-  { friendId: "friend-yujin", roomStage: 2, totalStudyMinutes: 210 },
-  { friendId: "friend-harin", roomStage: 1, totalStudyMinutes: 60 },
-  { friendId: "friend-doyun", roomStage: 3, totalStudyMinutes: 480 },
+  {
+    friendId: "friend-minsu",
+    roomStage: 3,
+    totalStudyMinutes: 420,
+    decorations: ["poster", "fairy-lights"],
+  },
+  {
+    friendId: "friend-seoyeon",
+    roomStage: 1,
+    totalStudyMinutes: 45,
+    decorations: ["cushion"],
+  },
+  {
+    friendId: "friend-jihun",
+    roomStage: 2,
+    totalStudyMinutes: 165,
+    decorations: ["photo-frame"],
+  },
+  {
+    friendId: "friend-yujin",
+    roomStage: 2,
+    totalStudyMinutes: 210,
+    decorations: ["fairy-lights"],
+  },
+  {
+    friendId: "friend-harin",
+    roomStage: 1,
+    totalStudyMinutes: 60,
+    decorations: ["poster"],
+  },
+  {
+    friendId: "friend-doyun",
+    roomStage: 3,
+    totalStudyMinutes: 480,
+    decorations: ["cushion", "photo-frame"],
+  },
 ];
 
 export function getFriendRoomProfile(

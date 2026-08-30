@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import RoomScene from "@/components/room/RoomScene";
+import RoomDecoration from "@/components/room/RoomDecoration";
 import FriendCharacter from "@/components/social/FriendCharacter";
 import ScreenShell from "@/components/layout/ScreenShell";
 import { formatTotalStudyTime } from "@/lib/mockData";
@@ -67,6 +68,9 @@ export default function FriendRoomScreen({
     >
       <RoomScene
         stage={roomProfile.roomStage}
+        decorations={roomProfile.decorations.map((id) => (
+          <RoomDecoration key={id} id={id} size="md" />
+        ))}
         character={
           <div className="absolute bottom-3 left-1/2 origin-bottom -translate-x-1/2 scale-[1.4]">
             <FriendCharacter avatarId={friend.avatarId} status={friend.status} />
