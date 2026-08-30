@@ -14,7 +14,7 @@ import type { CharacterAccessoryId, StudyRewardState } from "@/lib/types";
 //
 // 이 컴포넌트는 idle 에서만 렌더되므로 매 공부 세션(→ RESET) 후 새로 마운트되고,
 // 그때 loadStudyRewardState()/loadStudyRecords() 로 최신 상태를 읽는다
-// (StudyMemoryList 와 같은 패턴). 이번 주 표시는 통계 탭과 같은 주간 경계를 쓴다.
+// (CalendarScreen 과 같은 패턴). 이번 주 표시는 통계 탭과 같은 주간 경계를 쓴다.
 
 // 방 안의 동반자. HomeHeroRoom / MyRoomScreen 둘 다 이 형태로 RoomScene 에 넘긴다.
 export function MyRoomCharacter({

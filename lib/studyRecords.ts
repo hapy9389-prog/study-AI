@@ -9,11 +9,10 @@ import { dayBoundaries } from "./studyStats";
 
 const STUDY_RECORDS_STORAGE_KEY = "study-ai:study-records";
 
-// 저장 상한. 기억 화면은 이 중 최근 일부만 보여준다(RECENT_RECORDS_LIMIT).
-const MAX_STORED_RECORDS = 50;
-
-// 기억 화면에서 한 번에 표시할 최근 기록 수.
-export const RECENT_RECORDS_LIMIT = 20;
+// 저장 상한. Calendar 탭이 지난 달 이상을 조회할 수 있어야 해서(RECENT_RECORDS_LIMIT
+// 20개짜리 "기억" 탭 시절보다) 넉넉하게 늘렸다. 레코드 1건 ≈ 300자(characterReaction
+// 포함) → 200개는 대략 120~130KB, localStorage quota(수 MB) 대비 부담 없는 수준이다.
+const MAX_STORED_RECORDS = 200;
 
 // 새 공부 반응 생성 시 Claude 프롬프트에 함께 넘길 최근 기억 수.
 // 프롬프트/비용을 작게 유지한다(서버도 같은 수로 다시 자른다).

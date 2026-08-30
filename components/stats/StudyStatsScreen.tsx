@@ -12,11 +12,11 @@ import {
 } from "@/lib/studyStats";
 
 // "통계" 탭 화면. 이번 주 요일별 공부시간을 단순 막대로 보여준다 — 분석 dashboard 가
-// 아니라 "이번 주에 내가 어떻게 공부했는지 한눈에". StudyMemoryList 와 같은 패턴:
+// 아니라 "이번 주에 내가 어떻게 공부했는지 한눈에". CalendarScreen 과 같은 패턴:
 // 탭을 눌렀을 때만 mount 되므로 lazy useState 로 localStorage 를 바로 읽어도
 // hydration mismatch 가 없다(loadStudyRecords 는 서버에서 []).
 //
-// Memory 탭("무엇을 공부했나 = 질적 기록")과 역할이 다르다 — 여기는 "얼마나
+// Calendar 탭("언제 무엇을 공부했나 = 질적 기록")과 역할이 다르다 — 여기는 "얼마나
 // 공부했나 = 양적 성장"만 본다.
 
 interface StudyStatsScreenProps {

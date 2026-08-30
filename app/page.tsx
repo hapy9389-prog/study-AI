@@ -8,7 +8,7 @@ import CharacterArea from "@/components/character/CharacterArea";
 import StudyCard from "@/components/study/StudyCard";
 import CharacterReaction from "@/components/reaction/CharacterReaction";
 import StudyCompletionScene from "@/components/summary/StudyCompletionScene";
-import StudyMemoryList from "@/components/memory/StudyMemoryList";
+import CalendarScreen from "@/components/calendar/CalendarScreen";
 import FriendsSection from "@/components/friends/FriendsSection";
 import FriendRoomScreen from "@/components/friends/FriendRoomScreen";
 import SocialCheckInScreen from "@/components/social/SocialCheckInScreen";
@@ -410,8 +410,8 @@ export default function Home() {
 
   return (
     <MobileLayout activeTab={activeTab} onTabChange={setTab} navLocked={navLocked}>
-      {activeTab === "memory" ? (
-        <StudyMemoryList />
+      {activeTab === "calendar" ? (
+        <CalendarScreen />
       ) : activeTab === "stats" ? (
         <StudyStatsScreen onGoHome={() => setTab("home")} />
       ) : activeTab === "friends" ? (

@@ -5,7 +5,7 @@
 
 import type { ReactNode } from "react";
 
-export type NavTab = "home" | "stats" | "friends" | "memory";
+export type NavTab = "home" | "stats" | "friends" | "calendar";
 
 interface NavItem {
   label: string;
@@ -63,11 +63,14 @@ const navItems: NavItem[] = [
     ),
   },
   {
-    label: "기억",
-    tab: "memory",
+    label: "캘린더",
+    tab: "calendar",
     icon: (
       <svg {...iconProps}>
-        <path d="M7 4h10a1 1 0 0 1 1 1v14l-6-3.2L6 19V5a1 1 0 0 1 1-1Z" />
+        <rect x="4" y="5" width="16" height="15" rx="2" />
+        <path d="M4 9.5h16" />
+        <path d="M8 3.5v3" />
+        <path d="M16 3.5v3" />
       </svg>
     ),
   },

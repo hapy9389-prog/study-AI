@@ -15,10 +15,12 @@ import type {
 
 const DAILY_STUDY_PLAN_STORAGE_KEY = "study-ai:daily-study-plan:v1";
 
-// 오늘 + 최근 며칠까지만 보존한다. 히스토리 브라우징 UI는 없다 — 그저
-// 자정 경계를 넘는 순간 어제 계획이 흔적도 없이 사라지는 걸 막는 최소한의
-// 여유분이다(StudyRecord의 MAX_STORED_RECORDS와 같은 "작고 저렴한 cap" 선례).
-const MAX_STORED_PLAN_DAYS = 7;
+// 오늘 + 최근 두 달 가까이 보존한다. Calendar 탭("날짜별 공부 기억")이 과거
+// 계획을 조회하므로 그 범위를 커버할 만큼은 필요하다 — 다만 서버/DB 없이
+// localStorage 상한만 늘리는 것으로 충분하다(60일치 plan은 문자 기준 20KB
+// 안팎이라 quota 부담이 없다). StudyRecord의 MAX_STORED_RECORDS와 같은
+// "작고 저렴한 cap" 선례를 그대로 따른다.
+const MAX_STORED_PLAN_DAYS = 60;
 
 export const MIN_PLAN_TARGET_MINUTES = 10;
 export const MAX_PLAN_TARGET_MINUTES = 3000;
@@ -69,7 +71,10 @@ function isDailyStudyPlan(value: unknown): value is DailyStudyPlan {
   );
 }
 
-function loadStoredPlans(): DailyStudyPlan[] {
+// 저장된 계획 전체(최신순, 최대 MAX_STORED_PLAN_DAYS개). Calendar 탭이 과거
+// 날짜의 계획을 조회할 때 쓴다 — 여기서 계획을 만들거나 수정하지 않는다
+// (편집은 여전히 loadDailyPlan/saveDailyPlan을 통해 Home "오늘 계획"에서만).
+export function loadDailyPlanHistory(): DailyStudyPlan[] {
   if (typeof window === "undefined") return [];
   try {
     const raw = window.localStorage.getItem(DAILY_STUDY_PLAN_STORAGE_KEY);
@@ -88,13 +93,13 @@ function loadStoredPlans(): DailyStudyPlan[] {
 // "items가 빈 계획"은 다른 상태다(전자는 null, 후자는 items: []).
 export function loadDailyPlan(now: number = Date.now()): DailyStudyPlan | null {
   const dayStart = dayBoundaries(now)[0];
-  return loadStoredPlans().find((plan) => plan.dayStart === dayStart) ?? null;
+  return loadDailyPlanHistory().find((plan) => plan.dayStart === dayStart) ?? null;
 }
 
 // dayStart 기준 upsert 후 최신순으로 MAX_STORED_PLAN_DAYS개만 남긴다.
 export function saveDailyPlan(plan: DailyStudyPlan): void {
   if (typeof window === "undefined") return;
-  const rest = loadStoredPlans().filter((p) => p.dayStart !== plan.dayStart);
+  const rest = loadDailyPlanHistory().filter((p) => p.dayStart !== plan.dayStart);
   const next = [plan, ...rest]
     .sort((a, b) => b.dayStart - a.dayStart)
     .slice(0, MAX_STORED_PLAN_DAYS);
