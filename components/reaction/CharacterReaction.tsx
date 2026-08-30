@@ -3,7 +3,13 @@
 import { useRef, useState } from "react";
 import PostStudyCharacter from "@/components/character/PostStudyCharacter";
 import { reactionData, toMinutes } from "@/lib/mockData";
-import { loadRecentMemories, loadStudyRecords } from "@/lib/studyRecords";
+import {
+  buildReflectionNote,
+  getRecentRecordsForSubject,
+  loadRecentMemories,
+  loadStudyRecords,
+  toMemoryContext,
+} from "@/lib/studyRecords";
 import {
   didCompleteDailyPlanWithSession,
   getDailyPlanProgress,
@@ -31,6 +37,7 @@ import type {
   FeelingChoice,
   ReflectionEvidence,
   StudySession,
+  StudySummary,
 } from "@/lib/types";
 
 interface CharacterReactionProps {
@@ -42,6 +49,12 @@ interface CharacterReactionProps {
     feelingId: FeelingChoice["id"],
     aiReaction?: string,
     reflectionClarity?: ReflectionEvidence,
+    /** 첫 답변 + follow-up 답변을 이어붙인 회고 원문(있으면). clarity와 무관하게
+     * 답변이 있으면 항상 전달한다 — StudyRecord.reflectionNote로 저장된다. */
+    reflectionNote?: string,
+    /** closing 모드가 구조화 JSON으로 함께 만든 "오늘 공부 한눈에 보기" 요약.
+     * StudyRecord에는 저장하지 않고 done 화면 1회성 표시에만 쓰인다. */
+    studySummary?: StudySummary,
   ) => void;
 }
 
@@ -131,6 +144,12 @@ export default function CharacterReaction({
   const [followUpQuestion, setFollowUpQuestion] = useState("");
   const [closingLine, setClosingLine] = useState("");
   const [isFinishing, setIsFinishing] = useState(false);
+  // closing 모드가 구조화 JSON으로 함께 만든 "오늘 공부 한눈에 보기" 요약. 값이
+  // 없으면(mood-check 경로 · JSON 파싱 실패 · API 실패) done 화면이 요약 섹션을
+  // 렌더하지 않는다 — 기존 화면과 동일하게 degrade.
+  const [studySummary, setStudySummary] = useState<StudySummary | undefined>(
+    undefined,
+  );
 
   // 최근 공부 감정 패턴 감지(cooldown 통과 시에만). finishing step 에서 평소 마무리
   // 대신 조심스러운 확인 → (조금 힘들어면) 어려움 선택 → 짧은 학습 도움을 보여준다.
@@ -175,8 +194,10 @@ export default function CharacterReaction({
     elapsedSeconds < 60 ? "잠깐" : `${toMinutes(elapsedSeconds)}분 정도`;
   const characterLine = voice.reactionLine(subject, togetherPhrase);
 
-  // /api/reaction 으로 마무리 한마디를 받는다. 실패/타임아웃이면 주제가 들어간
-  // 정적 fallback 을 돌려준다 — 흐름을 막지 않는다.
+  // /api/reaction 으로 마무리 한마디(+ closing 모드면 구조화 요약)를 받는다.
+  // 실패/타임아웃이면 주제가 들어간 정적 fallback 을 돌려준다 — 흐름을 막지 않는다.
+  // summary/comparison/nextAction 은 closing 모드가 아니거나(mood-check) 파싱에
+  // 실패하면 항상 undefined 로 남는다 — 요약 섹션은 있을 때만 그려진다.
   const fetchClosingLine = async (
     reflection: {
       question: string;
@@ -187,8 +208,13 @@ export default function CharacterReaction({
     reflectionClarity?: ReflectionEvidence,
     moodSignal = false,
     dailyPlanContext?: DailyPlanReactionContext,
-  ): Promise<string> => {
+  ): Promise<{ reaction: string; summary?: StudySummary }> => {
     const recentMemories = loadRecentMemories(characterId);
+    // 기능 1(공부 종료 AI 요약) 전용 — 같은 과목의 사용자 전체 기록(캐릭터 무관).
+    // recentMemories(캐릭터별 개인 기억)와는 완전히 다른 소스다.
+    const subjectHistory = getRecentRecordsForSubject(loadStudyRecords(), subject, {
+      limit: 5,
+    }).map(toMemoryContext);
     try {
       const response = await fetch("/api/reaction", {
         method: "POST",
@@ -203,12 +229,32 @@ export default function CharacterReaction({
           ...(reflectionClarity ? { reflectionClarity } : {}),
           ...(moodSignal ? { recentStudyMoodSignal: true } : {}),
           ...(dailyPlanContext ? { dailyPlanContext } : {}),
+          ...(subjectHistory.length > 0 ? { subjectHistory } : {}),
         }),
       });
       if (response.ok) {
-        const data = (await response.json()) as { reaction?: unknown };
+        const data = (await response.json()) as {
+          reaction?: unknown;
+          summary?: unknown;
+          comparison?: unknown;
+          nextAction?: unknown;
+        };
         if (typeof data.reaction === "string" && data.reaction.trim() !== "") {
-          return data.reaction.trim();
+          const summary =
+            typeof data.summary === "string" && data.summary.trim() !== ""
+              ? {
+                  summary: data.summary.trim(),
+                  ...(typeof data.comparison === "string" &&
+                  data.comparison.trim() !== ""
+                    ? { comparison: data.comparison.trim() }
+                    : {}),
+                  ...(typeof data.nextAction === "string" &&
+                  data.nextAction.trim() !== ""
+                    ? { nextAction: data.nextAction.trim() }
+                    : {}),
+                }
+              : undefined;
+          return { reaction: data.reaction.trim(), summary };
         }
         console.error("[CharacterReaction] 예상치 못한 /api/reaction 응답:", data);
       } else {
@@ -218,9 +264,11 @@ export default function CharacterReaction({
       console.error("[CharacterReaction] /api/reaction 호출 오류:", error);
     }
     // mood check 상황이면 마무리 문구 대신 조심스러운 확인 문구를 fallback 으로.
-    return moodSignal
-      ? voice.moodCheck.ask
-      : voice.closingLine(subject, reflectionClarity);
+    return {
+      reaction: moodSignal
+        ? voice.moodCheck.ask
+        : voice.closingLine(subject, reflectionClarity),
+    };
   };
 
   // 1) 감상 선택 → 회고 질문 생성. 요청 중 다른 칩 재선택 금지.
@@ -332,7 +380,8 @@ export default function CharacterReaction({
         mood.shouldPrompt,
         dailyPlanContext,
       );
-      setClosingLine(closing);
+      setClosingLine(closing.reaction);
+      setStudySummary(closing.summary);
       if (mood.shouldPrompt) setMoodPhase("ask");
       setStep("finishing");
     } else {
@@ -416,7 +465,8 @@ export default function CharacterReaction({
       mood.shouldPrompt,
       dailyPlanContext,
     );
-    setClosingLine(closing);
+    setClosingLine(closing.reaction);
+    setStudySummary(closing.summary);
     if (mood.shouldPrompt) setMoodPhase("ask");
     setStep("finishing");
     setIsLoading(false);
@@ -434,7 +484,19 @@ export default function CharacterReaction({
       moodPhase === "none"
         ? closingLine
         : voice.closingLine(subject, clarityResult ?? undefined);
-    onSelectFeeling(feelingId, finalLine, clarityResult ?? undefined);
+    // reflectionPayload는 clear든 followup을 거친 partial/unclear든 finishing 진입
+    // 전에 항상 채워진다(위 handleSubmitAnswer/handleSubmitFollowUp) — clarity와
+    // 무관하게 답변이 있으면 항상 reflectionNote로 넘긴다.
+    const reflectionNote = reflectionPayload
+      ? buildReflectionNote(reflectionPayload.answer, reflectionPayload.followUpAnswer)
+      : undefined;
+    onSelectFeeling(
+      feelingId,
+      finalLine,
+      clarityResult ?? undefined,
+      reflectionNote,
+      studySummary,
+    );
   };
 
   // 3.5) mood check 응답 + cooldown 기록(양쪽 다 즉시). 이후:

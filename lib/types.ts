@@ -29,8 +29,10 @@ export interface FeelingChoice {
 }
 
 // 완료되어 localStorage에 저장된 과거 공부 1건. 진행 중인 StudySession과
-// 다른 개념이다 — StudyRecord는 불변 스냅샷이고, id/완료 시각과 그때 실제로
-// 화면에 쓰인 다온의 최종 문장(characterReaction)을 그대로 담는다.
+// 다른 개념이다 — StudyRecord는 생성 시점 필드(id/완료 시각/그때 실제로 화면에
+// 쓰인 다온의 최종 문장 등)는 불변 스냅샷이다. 다만 reviewSuggestion/reviewQuestions
+// 두 필드만은 예외로, 생성된 이후 Calendar에서 사용자 행동에 따라 사후에 채워질
+// 수 있다(updateStudyRecord, lib/studyRecords.ts).
 // 최근 일부는 StudyMemoryContext로 추려 Claude prompt에 전달된다(characterReaction 제외).
 export interface StudyRecord {
   id: string;
@@ -62,6 +64,31 @@ export interface StudyRecord {
    * reward/stats/growth 계산에는 절대 들어가지 않는다.
    */
   reflectionClarity?: ReflectionEvidence;
+  /**
+   * 회고 답변 원문(첫 답변 + follow-up 답변, 있으면 이어붙임). reflectionClarity와
+   * 무관하게 답변이 있으면 항상 저장한다 — 복습 제안/복습 질문 생성의 grounding
+   * 재료다. 없으면(구 기록 · 회고를 안 남긴 경우) undefined.
+   */
+  reflectionNote?: string;
+  /**
+   * Calendar에서 사용자가 "복습 제안 보기"를 눌렀을 때 최초 1회 생성해 저장한다
+   * (Anthropic API 호출은 세션 종료 시점이 아니라 이 시점에 일어난다). 이후 재방문
+   * 시 재호출 없이 이 값을 그대로 보여준다.
+   */
+  reviewSuggestion?: {
+    text: string;
+    generatedAt: string;
+  };
+  /**
+   * "복습 문제 만들기"로 생성한 Active Recall 질문 3개. "새 질문 만들기"를 사용자가
+   * 명시적으로 누르기 전까지는 저장된 값을 그대로 재사용한다. sourceNote는 실제
+   * grounding에 쓰인 텍스트(reflectionNote 또는 그 자리에서 추가로 받은 한 줄 입력).
+   */
+  reviewQuestions?: {
+    questions: string[];
+    sourceNote?: string;
+    generatedAt: string;
+  };
 }
 
 // Claude 프롬프트에 넘기는 최소 과거 기억. StudyRecord에서 필요한 사실만 추린다.
@@ -302,6 +329,19 @@ export interface AppState {
   // 회고에서 최종 도달한 판정. done 화면 기억 표현용(aiReaction·reward 와 같은
   // SELECT_FEELING 경로). 실제 판정이 없었으면(구 기록 없음/assessment 실패) undefined.
   reflectionClarity?: ReflectionEvidence;
+  // /api/reaction(closing 모드)이 함께 만든 "오늘 공부 한눈에 보기" 요약. done 화면
+  // 전용 1회성 표시값이고 StudyRecord에는 저장하지 않는다 — 다른 화면이 다시
+  // 조회하지 않으므로 AppState로만 흘려보낸다. 파싱 실패/API 실패 시 undefined
+  // (요약 섹션 자체를 렌더하지 않고 기존 화면과 동일하게 degrade).
+  studySummary?: StudySummary;
+}
+
+// /api/reaction(closing 모드)이 만드는 구조화 요약 3필드. StudyRecord에는 저장하지
+// 않는 done 화면 전용 값 — AppState.studySummary/Action.SELECT_FEELING에서만 쓰인다.
+export interface StudySummary {
+  summary: string;
+  comparison?: string;
+  nextAction?: string;
 }
 
 export type Action =
@@ -313,6 +353,7 @@ export type Action =
       aiReaction?: string;
       reward?: StudyRewardResult;
       reflectionClarity?: ReflectionEvidence;
+      studySummary?: StudySummary;
     }
   // done 화면에서 "새 공부 시작하기" — 처음 상태로 되돌린다.
   | { type: "RESET" }

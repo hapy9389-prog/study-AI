@@ -6,6 +6,7 @@ import type { StudyMemoryContext, StudyRecord } from "./types";
 import { feelingDisplayLabel, reactionData } from "./mockData";
 import { DEFAULT_CHARACTER_ID, isCharacterId, type CharacterId } from "./characters";
 import { dayBoundaries } from "./studyStats";
+import { normalizeSubjectForPlanMatch } from "./dailyStudyPlan";
 
 const STUDY_RECORDS_STORAGE_KEY = "study-ai:study-records";
 
@@ -72,7 +73,31 @@ function isStudyRecord(value: unknown): value is StudyRecord {
     (r.reflectionClarity === undefined ||
       r.reflectionClarity === "clear" ||
       r.reflectionClarity === "partial" ||
-      r.reflectionClarity === "unclear")
+      r.reflectionClarity === "unclear") &&
+    // 아래 세 필드는 이번에 추가된 optional 필드 — 도입 이전 기록엔 없다.
+    // 없거나(구 기록) 유효한 shape이면 통과.
+    (r.reflectionNote === undefined || typeof r.reflectionNote === "string") &&
+    isValidReviewSuggestion(r.reviewSuggestion) &&
+    isValidReviewQuestions(r.reviewQuestions)
+  );
+}
+
+function isValidReviewSuggestion(value: unknown): boolean {
+  if (value === undefined) return true;
+  if (typeof value !== "object" || value === null) return false;
+  const v = value as Record<string, unknown>;
+  return typeof v.text === "string" && typeof v.generatedAt === "string";
+}
+
+function isValidReviewQuestions(value: unknown): boolean {
+  if (value === undefined) return true;
+  if (typeof value !== "object" || value === null) return false;
+  const v = value as Record<string, unknown>;
+  return (
+    Array.isArray(v.questions) &&
+    v.questions.every((q) => typeof q === "string") &&
+    (v.sourceNote === undefined || typeof v.sourceNote === "string") &&
+    typeof v.generatedAt === "string"
   );
 }
 
@@ -101,6 +126,95 @@ export function saveStudyRecord(record: StudyRecord): void {
   } catch {
     // 용량 초과 / 저장 차단 등 — 기록 저장은 핵심 흐름을 막지 않는다.
   }
+}
+
+// 이미 저장된 기록 1건에 reviewSuggestion/reviewQuestions/reflectionNote만
+// 사후에 채워 넣는다. StudyRecord의 나머지 필드(id/완료 시각/characterReaction 등)는
+// 절대 이 함수로 바꾸지 않는다 — "생성 시점 필드는 불변" 원칙은 그대로 유지하고,
+// 이 세 필드만 예외로 사후에 채워질 수 있다(lib/types.ts StudyRecord 주석 참고).
+// id가 없으면(기록이 그 사이 삭제/초과 상한으로 밀려남) 조용히 아무 것도 하지 않는다.
+export function updateStudyRecord(
+  id: string,
+  patch: Partial<
+    Pick<StudyRecord, "reviewSuggestion" | "reviewQuestions" | "reflectionNote">
+  >,
+): void {
+  if (typeof window === "undefined") return;
+  const records = loadStudyRecords();
+  const next = records.map((record) =>
+    record.id === id ? { ...record, ...patch } : record,
+  );
+  try {
+    window.localStorage.setItem(STUDY_RECORDS_STORAGE_KEY, JSON.stringify(next));
+  } catch {
+    // 용량 초과 / 저장 차단 등 — 복습 제안/질문 저장 실패가 앱을 막지 않는다.
+    // (화면엔 이미 결과가 표시된 상태라 다음 방문 시에만 사라질 수 있다 — 프로토타입
+    // 규모에서는 감내 가능한 리스크로 본다.)
+  }
+}
+
+// 첫 답변 + follow-up 답변(있으면)을 이어붙인 회고 원문. 별도 clamp를 새로 두지
+// 않는다 — 입력 textarea가 이미 답변마다 300자 상한이라 합쳐도 충분히 작고,
+// 서버로 보낼 때는 각 API route의 기존 clampReflectionText(500자)가 다시 방어한다.
+// 둘 다 비어 있으면 undefined(저장할 회고 원문 없음).
+export function buildReflectionNote(
+  answer: string,
+  followUpAnswer?: string,
+): string | undefined {
+  const parts = [answer, followUpAnswer]
+    .map((part) => part?.trim())
+    .filter((part): part is string => !!part);
+  return parts.length > 0 ? parts.join("\n") : undefined;
+}
+
+export interface RecentSubjectRecordsOptions {
+  /** 기준이 되는(보통 지금 막 펼친) 기록의 id — 결과에서 제외한다. */
+  excludeId?: string;
+  /** 반환할 최대 개수. 기본 5. */
+  limit?: number;
+}
+
+// "같은 과목"의 최근 기록을 사용자 전체 범위에서 조회한다. **의도적으로 characterId로
+// 필터하지 않는다** — 공부 성과·기록 비교는 그날 함께 있던 캐릭터가 아니라
+// 사용자에게 귀속된다(다온과 SQLD → 다른 캐릭터와 SQLD → 다시 다온과 SQLD여도
+// 하나의 SQLD 학습 이력으로 이어져야 한다). "우리 저번에도 같이 했었지" 같은
+// 캐릭터의 개인적 기억이 필요하면 이 함수 대신 기존 loadRecentMemories(characterId)를
+// 쓴다 — 학습 분석 history(user-wide)와 캐릭터 기억(character-specific)은 서로
+// 다른 목적의 별도 조회로 분리한다.
+//
+// 과목 비교는 dailyStudyPlan.ts와 동일한 normalizeSubjectForPlanMatch()로 한다
+// (공백/대소문자만 무시하는 표기 비교 — 의미 기반 매칭은 아니다).
+export function getRecentRecordsForSubject(
+  records: StudyRecord[],
+  subject: string,
+  options: RecentSubjectRecordsOptions = {},
+): StudyRecord[] {
+  const { excludeId, limit = 5 } = options;
+  const key = normalizeSubjectForPlanMatch(subject);
+  return records
+    .filter(
+      (record) =>
+        record.id !== excludeId &&
+        normalizeSubjectForPlanMatch(record.subject) === key,
+    )
+    .slice(0, limit);
+}
+
+// StudyRecord → Claude 프롬프트용 StudyMemoryContext. loadRecentMemories와 동일한
+// 변환 규칙(clarity는 partial/unclear만 포함, characterReaction 제외)을 getRecentRecordsForSubject
+// 결과에도 적용할 때 쓴다. loadRecentMemories 내부는 안정성을 위해 그대로 두고,
+// 이 변환만 별도로 재사용 가능하게 뺐다.
+export function toMemoryContext(record: StudyRecord): StudyMemoryContext {
+  return {
+    subject: record.subject,
+    elapsedSeconds: record.elapsedSeconds,
+    feelingId: record.feelingId,
+    completedAt: record.completedAt,
+    ...(record.reflectionClarity === "partial" ||
+    record.reflectionClarity === "unclear"
+      ? { reflectionClarity: record.reflectionClarity }
+      : {}),
+  };
 }
 
 // 새 공부 반응 요청에 함께 보낼 최근 기억. LLM 에게는 "지금 이 캐릭터가 실제로

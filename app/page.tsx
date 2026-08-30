@@ -68,6 +68,7 @@ import type {
   FeelingChoice,
   ReflectionEvidence,
   StudyRewardResult,
+  StudySummary,
 } from "@/lib/types";
 
 const initialState: AppState = { phase: "idle" };
@@ -101,6 +102,7 @@ function reducer(state: AppState, action: Action): AppState {
         aiReaction: action.aiReaction,
         reward: action.reward,
         reflectionClarity: action.reflectionClarity,
+        studySummary: action.studySummary,
       };
     case "RESET":
       // done 화면 "새 공부 시작하기" — 처음 상태로. 저장된 기록은 그대로 유지된다.
@@ -211,6 +213,8 @@ export default function Home() {
     feelingId: FeelingChoice["id"],
     aiReaction?: string,
     reflectionClarity?: ReflectionEvidence,
+    reflectionNote?: string,
+    studySummary?: StudySummary,
   ) => {
     const session = state.studySession;
     let rewardResult: StudyRewardResult | undefined;
@@ -252,6 +256,10 @@ export default function Home() {
         // 회고에서 최종 도달한 판정. 실제 판정이 없었으면 undefined —
         // 기억 표현에만 쓰이고 reward/stats/growth 에는 들어가지 않는다.
         reflectionClarity,
+        // 회고 답변 원문. clarity와 무관하게 답변이 있으면 항상 저장한다 —
+        // Calendar의 복습 제안/복습 질문 생성의 grounding 재료(reward/stats/growth와
+        // 무관, StudyRecord.reflectionClarity와 같은 성격의 부가 정보).
+        reflectionNote,
       });
       saveStudyRecord(record);
       // StudyRecord 하나가 완성되는 바로 이 시점에 성장 상태도 한 번만 갱신한다.
@@ -301,6 +309,7 @@ export default function Home() {
       aiReaction,
       reward: rewardResult,
       reflectionClarity,
+      studySummary,
     });
   };
 
@@ -515,6 +524,7 @@ export default function Home() {
               equippedAccessoryId={customization.equippedAccessoryId}
               reward={state.reward}
               reflectionClarity={state.reflectionClarity}
+              studySummary={state.studySummary}
               onStartNew={() => {
                 recordSavedRef.current = false;
                 dispatch({ type: "RESET" });

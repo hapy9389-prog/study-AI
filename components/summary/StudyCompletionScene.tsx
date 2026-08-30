@@ -16,6 +16,7 @@ import type {
   ReflectionEvidence,
   RoomStage,
   StudyRewardResult,
+  StudySummary,
 } from "@/lib/types";
 
 interface StudyCompletionSceneProps {
@@ -31,6 +32,9 @@ interface StudyCompletionSceneProps {
   reward?: StudyRewardResult;
   /** 회고에서 최종 도달한 판정. 실제 판정이 없었으면 undefined(문구 표시 안 함). */
   reflectionClarity?: ReflectionEvidence;
+  /** closing 모드가 함께 만든 "오늘 공부 한눈에 보기" 요약. 없으면(파싱 실패·API
+   * 실패) 이 섹션 자체를 렌더하지 않는다 — 기존 화면과 동일하게 degrade. */
+  studySummary?: StudySummary;
   onStartNew: () => void;
 }
 
@@ -55,6 +59,7 @@ export default function StudyCompletionScene({
   equippedAccessoryId,
   reward,
   reflectionClarity,
+  studySummary,
   onStartNew,
 }: StudyCompletionSceneProps) {
   const closingLine =
@@ -96,6 +101,24 @@ export default function StudyCompletionScene({
           )}
         </div>
       </div>
+
+      {/* 2.5. 오늘 공부 한눈에 보기 — closing 모드가 구조화 JSON으로 함께 만든
+          요약(기능 1). 없으면(파싱 실패·API 실패) 이 블록 자체가 안 보인다 —
+          새 카드/구분선 없이 위 기억 블록과 같은 타이포그래피로 이어 붙인다. */}
+      {studySummary && (
+        <div>
+          <p className="text-xs font-medium text-warm-gray">오늘 공부 한눈에 보기</p>
+          <div className="mt-1 flex flex-col gap-0.5">
+            <p className="text-sm text-cocoa">{studySummary.summary}</p>
+            {studySummary.comparison && (
+              <p className="text-sm text-cocoa">{studySummary.comparison}</p>
+            )}
+            {studySummary.nextAction && (
+              <p className="text-sm text-cocoa">{studySummary.nextAction}</p>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* 3. 오늘 쌓인 것 — 작게. 보상이 화면에서 가장 큰 요소가 되지 않게. */}
       {reward && (

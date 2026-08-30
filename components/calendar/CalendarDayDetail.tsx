@@ -7,6 +7,8 @@ import { formatTotalStudyTime } from "@/lib/mockData";
 import type { DailyStudyPlan, StudyRecord } from "@/lib/types";
 import MemoryRecordCard from "@/components/memory/MemoryRecordCard";
 
+type RecordUpdateHandler = (id: string, patch: Partial<StudyRecord>) => void;
+
 const WEEKDAY_FULL = ["일", "월", "화", "수", "목", "금", "토"];
 
 function formatDayLabel(dayStart: number, isToday: boolean): string {
@@ -20,6 +22,8 @@ interface CalendarDayDetailProps {
   isToday: boolean;
   planForDay: DailyStudyPlan | null;
   dayRecords: StudyRecord[];
+  /** 복습 제안/복습 질문 생성 후 CalendarScreen의 records state를 patch한다. */
+  onRecordUpdate: RecordUpdateHandler;
 }
 
 // 선택한 날짜의 상세. 과거 계획/기록을 "조회"만 한다 — 여기서 계획을 만들거나
@@ -31,6 +35,7 @@ export default function CalendarDayDetail({
   isToday,
   planForDay,
   dayRecords,
+  onRecordUpdate,
 }: CalendarDayDetailProps) {
   // dayRecords는 이미 그 날짜로만 필터된 배열이라, getDailyPlanProgress가
   // 내부에서 selectedDayStart 기준으로 다시 필터해도 결과는 그대로다.
@@ -97,6 +102,7 @@ export default function CalendarDayDetail({
                 record={record}
                 isExpanded={expandedRecordId === record.id}
                 onToggle={handleToggleRecord}
+                onRecordUpdate={onRecordUpdate}
               />
             ))}
           </ul>

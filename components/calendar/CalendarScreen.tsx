@@ -14,6 +14,7 @@ import {
 import { dayBoundaries } from "@/lib/studyStats";
 import { loadStudyRecords } from "@/lib/studyRecords";
 import { loadDailyPlanHistory } from "@/lib/dailyStudyPlan";
+import type { StudyRecord } from "@/lib/types";
 import CalendarGrid from "./CalendarGrid";
 import CalendarDayDetail from "./CalendarDayDetail";
 
@@ -35,7 +36,12 @@ const chevronIconProps = {
 // 같은 패턴) lazy useState 초기값에서 바로 localStorage를 읽어도 SSR/hydration
 // 문제가 없다.
 export default function CalendarScreen() {
-  const [records] = useState(() => loadStudyRecords());
+  // setter가 필요하다 — 기능 2/3(복습 제안·복습 질문)이 Calendar를 연 채로
+  // updateStudyRecord()로 기록을 사후에 patch하면, 그 결과를 화면에도 즉시
+  // 반영해야 한다(handleRecordUpdate). localStorage 재조회(loadStudyRecords()
+  // 재호출)는 쓰지 않는다 — CalendarDayDetail이 key={selectedDayStart}로
+  // 리마운트되는 구조라, 그 트리거로 재로드하면 방금 펼친 카드가 다시 닫혀버린다.
+  const [records, setRecords] = useState(() => loadStudyRecords());
   const [plans] = useState(() => loadDailyPlanHistory());
   const [today] = useState(() => Date.now());
 
@@ -71,6 +77,15 @@ export default function CalendarScreen() {
   const dayRecords = getRecordsForDay(records, selectedDayStart);
 
   const isViewingCurrentMonth = viewMonth === currentMonthStart;
+
+  // updateStudyRecord()로 storage에 이미 저장된 patch를 화면 state에도 반영한다
+  // (storage 쓰기 자체는 MemoryRecordCard가 이미 끝낸 뒤 호출한다 — 여기선 로컬
+  // state만 맞춘다).
+  function handleRecordUpdate(id: string, patch: Partial<StudyRecord>) {
+    setRecords((prev) =>
+      prev.map((record) => (record.id === id ? { ...record, ...patch } : record)),
+    );
+  }
 
   return (
     <section className="mx-6 flex flex-col gap-4">
@@ -133,6 +148,7 @@ export default function CalendarScreen() {
         isToday={selectedDayStart === todayDayStart}
         planForDay={planForDay}
         dayRecords={dayRecords}
+        onRecordUpdate={handleRecordUpdate}
       />
     </section>
   );
