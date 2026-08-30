@@ -3,6 +3,7 @@ import {
   buildMemoryMessage,
   clarityDoneLine,
   feelingDisplayLabel,
+  formatTotalStudyTime,
   memoryResult,
   normalizeFeelingId,
   toMinutes,
@@ -100,12 +101,20 @@ export default function StudyCompletionScene({
       {reward && (
         <div className="border-t border-warm-line pt-4">
           <p className="text-xs font-medium text-warm-gray">오늘 쌓인 것</p>
+          {/* earnedCoins가 0이면(오늘 새 milestone을 못 넘김) 코인 부분을 생략한다 —
+              "+0 코인"처럼 실패로 읽히는 표현을 피한다. */}
           <p className="mt-1 text-sm text-cocoa">
-            {reward.earnedMinutes}분 공부 · +{reward.earnedCoins} 코인
+            {reward.earnedMinutes}분 공부
+            {reward.earnedCoins > 0 && ` · +${reward.earnedCoins} 코인`}
           </p>
-          {reward.goalBonus > 0 && (
+          {reward.reachedMilestoneMinutes !== undefined && (
             <p className="mt-0.5 text-[11px] text-warm-gray">
-              목표 달성 보너스 +{reward.goalBonus}
+              오늘 누적 {formatTotalStudyTime(reward.reachedMilestoneMinutes)} 달성
+            </p>
+          )}
+          {reward.dailyPlanCompletedNow && (
+            <p className="milestone mt-2 text-xs font-medium text-cocoa">
+              오늘 계획한 공부를 모두 채웠어요
             </p>
           )}
           {unlockMessage && (

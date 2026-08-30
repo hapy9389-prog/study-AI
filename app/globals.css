@@ -29,6 +29,7 @@
   --animate-lamp-breathe: lamp-breathe 6s ease-in-out infinite;
   --animate-screen-enter: screen-enter 180ms ease-out both;
   --animate-quiet-dot: quiet-dot 1.4s ease-in-out infinite;
+  --animate-daon-cursor: daon-cursor-blink 1s step-end infinite;
 }
 
 body {
@@ -174,6 +175,13 @@ body {
   }
   50% {
     opacity: 0.8;
+  }
+}
+
+/* 캐릭터 말풍선 타이핑 중에만 보이는 얇은 커서(TypingText). */
+@keyframes daon-cursor-blink {
+  50% {
+    opacity: 0;
   }
 }
 

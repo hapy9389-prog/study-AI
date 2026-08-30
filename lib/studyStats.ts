@@ -31,6 +31,16 @@ export function getTodayIndex(now: number = Date.now()): number {
   return (new Date(now).getDay() + 6) % 7;
 }
 
+// 오늘 로컬 00:00 ~ 다음 날 00:00 경계 2개. weekBoundaries와 같은 원칙(로컬 calendar
+// date, 고정 86_400_000ms 간격에 의존하지 않음) — 여기선 하루뿐이라 [start, end] 형태.
+// Daily Study Plan 진척, 오늘 공부시간(lib/studyRecords.ts), reward milestone 판정이
+// 모두 이 함수를 공유해 "오늘"의 정의가 어긋나지 않게 한다.
+export function dayBoundaries(now: number): [number, number] {
+  const t = new Date(now);
+  const start = localMidnight(t.getFullYear(), t.getMonth(), t.getDate());
+  return [start, start + 86_400_000];
+}
+
 // 이번 주 record 만 남기고 (completedAt 이 이번 주 경계 안).
 function thisWeekRecords(records: StudyRecord[], boundaries: number[]): StudyRecord[] {
   const weekStart = boundaries[0];

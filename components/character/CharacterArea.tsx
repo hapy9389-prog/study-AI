@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import CharacterScene, { type SceneKind } from "./CharacterScene";
 import HomeHeroRoom from "@/components/room/HomeHeroRoom";
 import {
@@ -5,6 +8,12 @@ import {
   DEFAULT_CHARACTER_ID,
   type CharacterId,
 } from "@/lib/characters";
+import { loadStudyRecords } from "@/lib/studyRecords";
+import { getDailyPlanProgress, loadDailyPlan } from "@/lib/dailyStudyPlan";
+import {
+  buildDailyPlanBubbleText,
+  classifyDailyPlanBubbleState,
+} from "@/lib/dailyPlanBubble";
 import type {
   CharacterAccessoryId,
   Expression,
@@ -22,13 +31,6 @@ interface CharacterAreaProps {
   equippedAccessoryId?: CharacterAccessoryId | null;
 }
 
-// 홈 idle Hero 말풍선의 기본 문구. 지금은 캐릭터 공통 — 향후 이 자리를
-// characterId 기반 조회로 바꾸면 캐릭터별 home voice 가 연결된다.
-const HOME_GREETING = {
-  primary: "오늘은 뭐 공부할까?",
-  secondary: "끝나면 나도 알고 싶어!",
-};
-
 const expressionByPhase: Record<ViewState, Expression> = {
   idle: "curious",
   studying: "quiet",
@@ -43,6 +45,42 @@ const sceneByPhase: Record<ViewState, SceneKind> = {
   reaction: "resting",
   done: "resting",
 };
+
+// idle Hero 방 + 말풍선. CharacterArea 밖으로 분리한 이유는 훅(useState)을
+// 조건부(phase === "idle" 브랜치) 안에서 호출하지 않기 위해서다(rules-of-hooks) —
+// 이 컴포넌트는 idle일 때만 마운트되므로 훅을 최상위에서 그대로 호출해도 안전하다.
+//
+// 말풍선 문구는 오늘 계획(Daily Study Plan) 진척과 연결된다 — LLM 호출 없이
+// 코드가 상태를 판정하고 캐릭터 목소리로 표현만 바꾼다(lib/dailyPlanBubble.ts).
+// 이 컴포넌트는 phase가 idle을 벗어나면 완전히 unmount되므로(app/page.tsx의
+// 조건부 렌더), 아래 useState 초기화는 "idle로 돌아올 때마다" 새로 실행된다 —
+// 계획 생성/수정, 공부 완료 후 RESET, 날짜 변경 전부 이 재마운트를 통해 자연히
+// 반영된다(MyRoom.tsx/DailyPlanHomeSection.tsx와 같은 "마운트 시점 스냅샷" 패턴).
+function IdleCharacterHero({
+  characterId,
+  roomStage,
+  equippedAccessoryId,
+}: {
+  characterId: CharacterId;
+  roomStage: RoomStage;
+  equippedAccessoryId: CharacterAccessoryId | null;
+}) {
+  const [dailyPlan] = useState(() => loadDailyPlan());
+  const [dailyRecords] = useState(() => loadStudyRecords());
+  const [dailyNow] = useState(() => Date.now());
+  const dailyProgress = getDailyPlanProgress(dailyPlan, dailyRecords, dailyNow);
+  const bubbleState = classifyDailyPlanBubbleState(dailyProgress);
+  const speech = buildDailyPlanBubbleText(characterId, bubbleState, dailyProgress);
+
+  return (
+    <HomeHeroRoom
+      characterId={characterId}
+      roomStage={roomStage}
+      equippedAccessoryId={equippedAccessoryId}
+      speech={speech}
+    />
+  );
+}
 
 // Core product rule: during `studying`, 다온 never speaks or throws an event —
 // only a static, calm "함께 있어요" label is shown. The reaction dialogue for
@@ -59,11 +97,10 @@ export default function CharacterArea({
   // 화면의 주인공이 된다.
   if (phase === "idle") {
     return (
-      <HomeHeroRoom
+      <IdleCharacterHero
         characterId={characterId}
         roomStage={roomStage}
         equippedAccessoryId={equippedAccessoryId ?? null}
-        speech={HOME_GREETING}
       />
     );
   }

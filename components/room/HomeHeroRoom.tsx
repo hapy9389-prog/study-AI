@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import RoomScene from "@/components/room/RoomScene";
+import TypingText from "@/components/character/TypingText";
 import { MyRoomCharacter } from "@/components/room/MyRoom";
 import type { CharacterId } from "@/lib/characters";
 import type { CharacterAccessoryId, RoomStage } from "@/lib/types";
@@ -14,11 +15,11 @@ interface HomeHeroRoomProps {
   /** 장착된 액세서리. app/page.tsx 의 customization 이 source. */
   equippedAccessoryId: CharacterAccessoryId | null;
   /**
-   * 방 안 캐릭터가 건네는 한마디. 없으면 말풍선을 그리지 않는다.
-   * 내용은 상위(CharacterArea)가 정하고, 여기서는 위치/표현만 책임진다 —
-   * 향후 캐릭터별 home voice 를 연결할 때 이 prop 만 바꾸면 된다.
+   * 방 안 캐릭터가 건네는 한마디. 없으면 말풍선을 그리지 않는다. 한 글자씩
+   * 타이핑되어 나타난다(TypingText). 내용은 상위(CharacterArea)가 오늘 계획
+   * 진척 기반으로 정하고, 여기서는 위치/표현/타이핑만 책임진다.
    */
-  speech?: { primary: string; secondary?: string };
+  speech?: string;
 }
 
 const STAGE_PREVIEWS: RoomStage[] = [1, 2, 3];
@@ -53,13 +54,13 @@ export default function HomeHeroRoom({
         />
 
         {/* 방 안 캐릭터의 한마디. 좌상단 빈 공간에 두고 tail 이 캐릭터(프레임
-            중앙 하단)로 향한다. 얼굴·눈·입은 가리지 않고 배경 일부만 가린다. */}
+            중앙 하단)로 향한다. 얼굴·눈·입은 가리지 않고 배경 일부만 가린다.
+            min-height는 타이핑 중 글자 수가 늘어도 bubble 높이가 갑자기
+            점프하지 않도록(2줄 wrap까지 커버) — 전역 .daon-bubble 자체는
+            건드리지 않고 이 hero 인스턴스에만 로컬로 적용한다. */}
         {speech && (
-          <div className="daon-bubble absolute left-3 top-3 max-w-[66%] leading-snug">
-            <p className="text-xs">{speech.primary}</p>
-            {speech.secondary && (
-              <p className="text-xs text-warm-gray">{speech.secondary}</p>
-            )}
+          <div className="daon-bubble absolute left-3 top-3 min-h-[2.75rem] max-w-[66%] leading-snug">
+            <TypingText text={speech} className="text-xs" />
             <span
               aria-hidden
               className="absolute -bottom-2 right-7 h-0 w-0 border-x-8 border-t-8 border-x-transparent border-t-[color-mix(in_oklab,var(--color-lavender)_40%,var(--color-cream))]"

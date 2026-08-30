@@ -5,6 +5,7 @@
 import type { StudyMemoryContext, StudyRecord } from "./types";
 import { feelingDisplayLabel, reactionData } from "./mockData";
 import { DEFAULT_CHARACTER_ID, isCharacterId, type CharacterId } from "./characters";
+import { dayBoundaries } from "./studyStats";
 
 const STUDY_RECORDS_STORAGE_KEY = "study-ai:study-records";
 
@@ -155,23 +156,26 @@ export function formatCompletedAt(iso: string): string {
   return `${date.getMonth() + 1}월 ${date.getDate()}일 ${time}`;
 }
 
-// 오늘(로컬 자정~다음 자정) 완료된 기록의 실제 공부시간 합계를 분으로 돌려준다.
-// StudyRewardState.totalStudyMinutes(누적 평생)와 다른, "오늘치" 값이다.
-// now 를 인자로 받아 테스트 가능하고, 호출부(클릭 핸들러)에서만 실행돼 SSR 을 타지 않는다.
-export function getTodayStudyMinutes(
+// 오늘(로컬 자정~다음 자정) 완료된 기록의 실제 공부시간 합계를 초로 돌려준다(정확치 —
+// milestone reward 판정(lib/studyRewards.ts)처럼 분 단위 반올림 없이 정확한 비교가
+// 필요한 곳에서 쓴다). now 를 인자로 받아 테스트 가능하고, 호출부에서만 실행돼 SSR 을 타지 않는다.
+export function getTodayStudySeconds(
   records: StudyRecord[],
   now: number = Date.now(),
 ): number {
-  const startOfDay = (d: Date) =>
-    new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
-  const todayStart = startOfDay(new Date(now));
-  const todayEnd = todayStart + 86_400_000;
-
-  const totalSeconds = records.reduce((sum, record) => {
+  const [todayStart, todayEnd] = dayBoundaries(now);
+  return records.reduce((sum, record) => {
     const at = new Date(record.completedAt).getTime();
     if (Number.isNaN(at) || at < todayStart || at >= todayEnd) return sum;
     return sum + Math.max(0, record.elapsedSeconds);
   }, 0);
+}
 
-  return Math.floor(totalSeconds / 60);
+// 오늘 공부시간을 분으로. StudyRewardState.totalStudyMinutes(누적 평생)와 다른,
+// "오늘치" 표시용 값이다.
+export function getTodayStudyMinutes(
+  records: StudyRecord[],
+  now: number = Date.now(),
+): number {
+  return Math.floor(getTodayStudySeconds(records, now) / 60);
 }

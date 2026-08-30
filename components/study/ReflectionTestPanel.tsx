@@ -9,10 +9,10 @@ import type { StudySession } from "@/lib/types";
 // app/page.tsx 에서 process.env.NODE_ENV === "development" 로 렌더를 막고,
 // reducer 의 DEBUG_ENTER_REACTION 도 production 에서는 무시된다(이중 방어).
 
-const PRESETS: Array<{ subject: string; targetMinutes: number; elapsedSeconds: number }> = [
-  { subject: "미적분", targetMinutes: 30, elapsedSeconds: 1800 },
-  { subject: "영어 회화", targetMinutes: 20, elapsedSeconds: 1200 },
-  { subject: "SQLD", targetMinutes: 40, elapsedSeconds: 2400 },
+const PRESETS: Array<{ subject: string; elapsedSeconds: number }> = [
+  { subject: "미적분", elapsedSeconds: 1800 },
+  { subject: "영어 회화", elapsedSeconds: 1200 },
+  { subject: "SQLD", elapsedSeconds: 2400 },
 ];
 
 export default function ReflectionTestPanel({
@@ -36,15 +36,13 @@ export default function ReflectionTestPanel({
             onClick={() =>
               onEnterReaction({
                 subject: preset.subject,
-                targetMinutes: preset.targetMinutes,
                 elapsedSeconds: preset.elapsedSeconds,
                 startedAt: Date.now() - preset.elapsedSeconds * 1000,
               })
             }
             className="rounded-xl bg-warm-gray/10 px-3 py-2 text-left text-xs font-medium text-warm-gray transition-colors hover:bg-warm-gray/20"
           >
-            {preset.subject} · 목표 {preset.targetMinutes}분 · 실제{" "}
-            {preset.elapsedSeconds / 60}분
+            {preset.subject} · 실제 {preset.elapsedSeconds / 60}분
           </button>
         ))}
       </div>

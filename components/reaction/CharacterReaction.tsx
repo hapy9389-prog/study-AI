@@ -3,7 +3,13 @@
 import { useRef, useState } from "react";
 import PostStudyCharacter from "@/components/character/PostStudyCharacter";
 import { reactionData, toMinutes } from "@/lib/mockData";
-import { loadRecentMemories } from "@/lib/studyRecords";
+import { loadRecentMemories, loadStudyRecords } from "@/lib/studyRecords";
+import {
+  didCompleteDailyPlanWithSession,
+  getDailyPlanProgress,
+  loadDailyPlan,
+  normalizeSubjectForPlanMatch,
+} from "@/lib/dailyStudyPlan";
 import { evaluateMoodCheck, saveMoodCheckState } from "@/lib/studyMood";
 import {
   getStudySupportFallback,
@@ -20,6 +26,8 @@ import {
 import { getCharacterVoice } from "@/lib/characterVoice";
 import type {
   CharacterAccessoryId,
+  DailyPlanReactionContext,
+  DailyPlanStatus,
   FeelingChoice,
   ReflectionEvidence,
   StudySession,
@@ -52,6 +60,61 @@ interface CharacterReactionProps {
 type ReflectionStep = "feeling" | "reflection" | "followup" | "finishing";
 
 const ANSWER_MAX_LENGTH = 300;
+
+// 이번 세션이 "오늘 계획"의 대상 과목이면 /api/reaction 에 넘길 진척
+// 컨텍스트를 만든다. 이 시점(finishing 진입 직전)엔 이번 세션의 StudyRecord가
+// 아직 저장되지 않았다 — 저장은 onSelectFeeling 이후 page.tsx 에서 일어난다.
+// 그래서 레코드를 다시 세지 않고, 이번 세션의 실제 elapsedSeconds를 기존 누적
+// 초에 한 번만 더한다. 이 값은 프롬프트 재료일 뿐 어디에도 저장되지 않으므로
+// 이후 실제 저장/재계산과 절대 겹치지 않는다(이중 반영 불가).
+function buildDailyPlanContext(
+  subject: string,
+  elapsedSeconds: number,
+): DailyPlanReactionContext | undefined {
+  const plan = loadDailyPlan();
+  if (!plan) return undefined;
+
+  const key = normalizeSubjectForPlanMatch(subject);
+  const matchedItem = plan.items.find(
+    (item) => normalizeSubjectForPlanMatch(item.subject) === key,
+  );
+  if (!matchedItem) return undefined;
+
+  const records = loadStudyRecords();
+  const before = getDailyPlanProgress(plan, records).find(
+    (p) => normalizeSubjectForPlanMatch(p.subject) === key,
+  );
+  const studiedSecondsBefore = before?.studiedSeconds ?? 0;
+  const studiedSecondsAfter = studiedSecondsBefore + elapsedSeconds;
+  const targetSeconds = matchedItem.targetMinutes * 60;
+
+  // status가 유일한 source of truth다 — "이번에 막 달성했는지"는 상태값
+  // 자체(just-completed)로만 구분하고 별도 boolean으로 중복 표현하지 않는다.
+  const status: DailyPlanStatus =
+    studiedSecondsAfter < targetSeconds
+      ? "in-progress"
+      : studiedSecondsBefore < targetSeconds
+        ? "just-completed"
+        : "already-completed";
+
+  // 오늘 계획 "전체"가 이번 세션으로 막 완료됐는지 — page.tsx의 reward 판정과
+  // 완전히 같은 함수를 재사용해 두 곳의 계산이 어긋나지 않는다. before가 이미
+  // 전체 완료 상태였으면 항상 false(재축하 방지).
+  const allPlanItemsCompletedNow = didCompleteDailyPlanWithSession(
+    plan,
+    records,
+    subject,
+    elapsedSeconds,
+  );
+
+  return {
+    targetMinutes: matchedItem.targetMinutes,
+    studiedSeconds: studiedSecondsAfter,
+    remainingSeconds: Math.max(0, targetSeconds - studiedSecondsAfter),
+    status,
+    allPlanItemsCompletedNow,
+  };
+}
 
 export default function CharacterReaction({
   characterId,
@@ -123,6 +186,7 @@ export default function CharacterReaction({
     },
     reflectionClarity?: ReflectionEvidence,
     moodSignal = false,
+    dailyPlanContext?: DailyPlanReactionContext,
   ): Promise<string> => {
     const recentMemories = loadRecentMemories(characterId);
     try {
@@ -132,13 +196,13 @@ export default function CharacterReaction({
         body: JSON.stringify({
           characterId,
           subject,
-          targetMinutes: studySession.targetMinutes,
           elapsedSeconds,
           feelingId,
           recentMemories,
           reflection,
           ...(reflectionClarity ? { reflectionClarity } : {}),
           ...(moodSignal ? { recentStudyMoodSignal: true } : {}),
+          ...(dailyPlanContext ? { dailyPlanContext } : {}),
         }),
       });
       if (response.ok) {
@@ -261,10 +325,12 @@ export default function CharacterReaction({
       // 최근 공부 감정 패턴 확인 여부(cooldown 포함). feelingId 는 위에서 non-null 확인됨.
       const mood = evaluateMoodCheck(feelingId);
       setReflectionPayload({ question, answer: trimmed });
+      const dailyPlanContext = buildDailyPlanContext(subject, elapsedSeconds);
       const closing = await fetchClosingLine(
         { question, answer: trimmed },
         clarity ?? undefined,
         mood.shouldPrompt,
+        dailyPlanContext,
       );
       setClosingLine(closing);
       if (mood.shouldPrompt) setMoodPhase("ask");
@@ -338,6 +404,7 @@ export default function CharacterReaction({
       followUpQuestion,
       followUpAnswer: trimmed,
     });
+    const dailyPlanContext = buildDailyPlanContext(subject, elapsedSeconds);
     const closing = await fetchClosingLine(
       {
         question,
@@ -347,6 +414,7 @@ export default function CharacterReaction({
       },
       finalEv,
       mood.shouldPrompt,
+      dailyPlanContext,
     );
     setClosingLine(closing);
     if (mood.shouldPrompt) setMoodPhase("ask");
@@ -412,7 +480,6 @@ export default function CharacterReaction({
         body: JSON.stringify({
           characterId,
           subject,
-          targetMinutes: studySession.targetMinutes,
           elapsedSeconds,
           feelingId,
           recentMemories,

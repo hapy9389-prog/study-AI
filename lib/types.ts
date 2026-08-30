@@ -5,12 +5,12 @@ import type { CharacterId } from "./characters";
 
 export type Expression = "curious" | "quiet" | "happy" | "excited";
 
-// A user-entered study session. `targetMinutes` is a goal the user set.
+// A user-entered study session. 세션 단위 목표시간(targetMinutes)은 없다 — 하루
+// 전체 목표는 DailyStudyPlan이 담당하고, 세션은 원하는 만큼 하고 자유롭게 끝낸다.
 // `startedAt`/`elapsedSeconds` are stamped by the reducer (Phase 3) — never
 // set by StudyCard directly, so components only ever read them.
 export interface StudySession {
   subject: string;
-  targetMinutes: number;
   /** Date.now() ms timestamp, stamped by the reducer on START_STUDY. */
   startedAt?: number;
   /** Final measured elapsed seconds, stamped by the reducer on COMPLETE_STUDY. */
@@ -35,7 +35,12 @@ export interface FeelingChoice {
 export interface StudyRecord {
   id: string;
   subject: string;
-  /** 사용자가 설정했던 목표 시간(분). 실제 공부 시간과 혼동 금지. */
+  /**
+   * legacy 필드 — 더 이상 의미 없음. 과거엔 사용자가 세션마다 설정한 목표 시간(분)
+   * 이었지만, 세션 단위 목표는 없앴다(오늘 전체 목표는 DailyStudyPlan이 담당).
+   * StudyRecord 스키마 변경을 피하기 위해 필드만 남기고 항상 0으로 저장한다 —
+   * 어떤 화면도 이 값을 더 이상 읽지 않는다.
+   */
   targetMinutes: number;
   /** 측정된 실제 공부 시간(초). */
   elapsedSeconds: number;
@@ -114,15 +119,23 @@ export interface StudyRewardState {
 }
 
 // calculateStudyReward() 결과 — 이번 세션 1건의 보상 계산값(누적 아님).
+// 보상은 두 종류로 분리된다(§lib/studyRewards.ts): ① 오늘 누적 실제 공부시간이
+// 새 time milestone을 넘겨 받는 코인, ② 오늘 Daily Plan 전체를 이번 세션으로
+// 처음 완료해 받는 하루 1회 보너스. "목표 달성 보상"이라는 개념은 이제 ②에만 쓰인다
+// (세션 단위 targetMinutes/goalBonus는 더 이상 없음).
 export interface StudyRewardCalculation {
-  /** 실제 공부 분 = Math.floor(elapsedSeconds / 60) */
-  baseCoins: number;
-  /** 목표 시간 달성 시 +10, 아니면 0 */
-  goalBonus: number;
-  /** baseCoins + goalBonus */
+  /** timeMilestoneCoins + dailyPlanBonusCoins */
   earnedCoins: number;
-  /** 누적 totalStudyMinutes에 더해질 분 */
+  /** 누적 totalStudyMinutes에 더해질 분 = Math.floor(elapsedSeconds / 60) */
   earnedMinutes: number;
+  /** 이번 세션으로 오늘 누적 공부시간이 새로 지급한 time milestone 코인(0 가능). */
+  timeMilestoneCoins: number;
+  /** 이번 세션으로 새로 넘은 가장 높은 time milestone(분). 없으면 undefined. */
+  reachedMilestoneMinutes?: number;
+  /** 이번 세션으로 오늘 Daily Plan 전체 완료 보너스를 새로 받았으면 그 코인, 아니면 0. */
+  dailyPlanBonusCoins: number;
+  /** 이번 세션으로 오늘 Daily Plan 전체 완료 보너스를 새로 받았는지. */
+  dailyPlanCompletedNow: boolean;
 }
 
 // done 화면 보상 카드에 넘기는 이번 세션 결과 — 계산값 + 방 단계 변화.
@@ -141,6 +154,62 @@ export type ReflectionEvidence = "clear" | "partial" | "unclear";
 
 export interface MemoryResult {
   nextStudyNudge: string;
+}
+
+// 사용자가 정한 "오늘 이 과목을 몇 분 하겠다"는 목표 1건. studiedSeconds는
+// 저장하지 않는다 — 항상 StudyRecord.elapsedSeconds 합산으로 derive한다
+// (getDailyPlanProgress, lib/dailyStudyPlan.ts). 저장된 값과 실제 기록이
+// 어긋나는 걸 원천 차단한다.
+export interface DailyStudyPlanItem {
+  id: string;
+  /** 사용자가 입력한 원문 그대로(trim만). 비교는 normalizeSubjectForPlanMatch()로 별도. */
+  subject: string;
+  /** 오늘 목표 시간(분). 10~3000(약 50시간) 범위. */
+  targetMinutes: number;
+}
+
+// 하루 단위 계획. dayStart는 lib/studyStats.ts dayBoundaries(now)[0]과 동일한
+// 로컬 자정 00:00 timestamp — 이 값으로 "오늘 계획인지" 판정한다.
+export interface DailyStudyPlan {
+  dayStart: number;
+  items: DailyStudyPlanItem[];
+}
+
+// getDailyPlanProgress()의 반환 항목 — 이미 다 계산된 진척(derived, 저장 안 됨).
+// studiedSeconds는 정확한 재계산/비교용, 분 단위는 표시 전용(floor/ceil 정책은
+// lib/dailyStudyPlan.ts 주석 참고) — isCompleted 판정에 반올림된 분 값을 쓰지 않는다.
+export interface DailyPlanProgress {
+  subject: string;
+  targetMinutes: number;
+  /** 오늘 해당 subject StudyRecord의 elapsedSeconds 합계(초, 실측치 — 초과 가능). */
+  studiedSeconds: number;
+  /** 표시용 분 — Math.floor(studiedSeconds / 60). */
+  studiedMinutes: number;
+  /** 표시용 남은 분 — Math.ceil(remainingSeconds / 60). */
+  remainingMinutes: number;
+  isCompleted: boolean;
+}
+
+// /api/reaction에 넘기는, 이미 계산된 사실. LLM은 이 값을 재계산하지 않고
+// 그대로 캐릭터 말투로 표현만 한다("판단과 계산은 코드가, 표현은 LLM이").
+// status가 유일한 source of truth다 — "이번에 달성했는지"는 상태값 자체
+// (just-completed)로 구분하고, 별도 boolean으로 중복 표현하지 않는다.
+export type DailyPlanStatus = "in-progress" | "just-completed" | "already-completed";
+
+export interface DailyPlanReactionContext {
+  targetMinutes: number;
+  /** 이번 세션 반영 후(post-session) 누적 초. */
+  studiedSeconds: number;
+  /** 이번 세션 반영 후 남은 초(0 이상). */
+  remainingSeconds: number;
+  status: DailyPlanStatus;
+  /**
+   * 이번 세션 "덕분에" 오늘 계획 전체가 막 완료됐는지 — 세션 반영 전엔 미완료였고
+   * 반영 후 완료로 바뀐 경우(false→true 전이)에만 true. 이미 완료된 상태에서
+   * 추가로 공부한 세션·계획이 없는 경우는 항상 false(LLM이 매번 다시 축하하지
+   * 않도록). 없으면 false와 동일 취급.
+   */
+  allPlanItemsCompletedNow?: boolean;
 }
 
 // 공부로 얻은 coin(StudyRewardState.coins)을 소비해 다온에게 장착하는 순수 외형

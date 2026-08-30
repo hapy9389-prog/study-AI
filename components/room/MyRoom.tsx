@@ -41,11 +41,10 @@ export function MyRoomCharacter({
 }
 
 interface MyRoomProps {
-  onOpenRoom: () => void;
   onOpenCustomization: () => void;
 }
 
-export default function MyRoom({ onOpenRoom, onOpenCustomization }: MyRoomProps) {
+export default function MyRoom({ onOpenCustomization }: MyRoomProps) {
   const [state] = useState<StudyRewardState>(() => loadStudyRewardState());
   const [records] = useState(() => loadStudyRecords());
   const [now] = useState(() => Date.now());
@@ -67,20 +66,14 @@ export default function MyRoom({ onOpenRoom, onOpenCustomization }: MyRoomProps)
         </div>
       </dl>
 
-      {/* 방·캐릭터와 직접 관련된 secondary action. 동일 weight, 1:1 폭.
-          공부 시작 CTA 보다 강조되지 않는다. */}
-      <div className="mt-3 flex gap-2">
-        <button
-          type="button"
-          onClick={onOpenRoom}
-          className="btn-secondary flex-1"
-        >
-          내 방 크게 보기
-        </button>
+      {/* 방·캐릭터와 직접 관련된 secondary action. 공부 시작 CTA 보다 강조되지
+          않는다. 방 자체는 이미 위 Hero(CharacterArea)에 크게 노출돼 있으므로
+          별도의 "내 방 크게 보기" 진입점은 두지 않는다. */}
+      <div className="mt-3">
         <button
           type="button"
           onClick={onOpenCustomization}
-          className="btn-secondary flex-1"
+          className="btn-secondary w-full"
         >
           내 공부 친구
         </button>

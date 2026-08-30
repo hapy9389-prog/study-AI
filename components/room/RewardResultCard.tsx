@@ -1,3 +1,4 @@
+import { formatTotalStudyTime } from "@/lib/mockData";
 import type { RoomStage, StudyRewardResult } from "@/lib/types";
 
 // done 화면 하단의 작은 보상 요약 카드. 공부 완료 시 자동 지급된 이번 세션
@@ -21,13 +22,24 @@ export default function RewardResultCard({ reward }: RewardResultCardProps) {
 
   return (
     <section className="card mx-6">
-      <p className="text-base font-semibold text-cocoa">
-        +{reward.earnedCoins} 코인
-      </p>
-      <p className="mt-1 text-xs text-warm-gray">
-        {reward.earnedMinutes}분 공부
-        {reward.goalBonus > 0 && " · 목표 달성 보너스 +10"}
-      </p>
+      <p className="text-xs text-warm-gray">{reward.earnedMinutes}분 공부</p>
+      {/* earnedCoins가 0이면(오늘 새 milestone을 못 넘김) 이 줄 자체를 생략한다 —
+          "+0 코인"처럼 실패로 읽히는 표현을 피한다. */}
+      {reward.earnedCoins > 0 && (
+        <p className="mt-1 text-base font-semibold text-cocoa">
+          +{reward.earnedCoins} 코인
+        </p>
+      )}
+      {reward.reachedMilestoneMinutes !== undefined && (
+        <p className="milestone mt-2 text-xs font-medium text-cocoa">
+          오늘 누적 {formatTotalStudyTime(reward.reachedMilestoneMinutes)} 달성
+        </p>
+      )}
+      {reward.dailyPlanCompletedNow && (
+        <p className="milestone mt-2 text-xs font-medium text-cocoa">
+          오늘 계획한 공부를 모두 채웠어요
+        </p>
+      )}
       {unlockMessage && (
         <p className="milestone mt-2 text-xs font-medium text-cocoa">
           {unlockMessage}

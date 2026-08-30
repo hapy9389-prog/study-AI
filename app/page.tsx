@@ -15,7 +15,8 @@ import SocialCheckInScreen from "@/components/social/SocialCheckInScreen";
 import StudyStatsScreen from "@/components/stats/StudyStatsScreen";
 import MyRoom from "@/components/room/MyRoom";
 import TodayStudyHeader from "@/components/home/TodayStudyHeader";
-import MyRoomScreen from "@/components/room/MyRoomScreen";
+import DailyPlanHomeSection from "@/components/home/DailyPlanHomeSection";
+import DailyStudyPlanScreen from "@/components/plan/DailyStudyPlanScreen";
 import CharacterCustomization from "@/components/customization/CharacterCustomization";
 import CharacterSelectScreen from "@/components/character/CharacterSelectScreen";
 import StudyMoodDebugPanel from "@/components/dev/StudyMoodDebugPanel";
@@ -37,7 +38,7 @@ import {
 } from "@/lib/characterCustomization";
 import {
   createStudyRecord,
-  getTodayStudyMinutes,
+  getTodayStudySeconds,
   loadStudyRecords,
   saveStudyRecord,
 } from "@/lib/studyRecords";
@@ -48,11 +49,18 @@ import {
 } from "@/lib/characterGrowth";
 import {
   calculateStudyReward,
+  hasClaimedDailyPlanBonus,
   loadStudyRewardState,
+  saveDailyPlanBonusClaimDayStart,
   saveStudyRewardState,
   updateStudyRewardAfterStudy,
 } from "@/lib/studyRewards";
-import { getWeekTotalStudyMinutes } from "@/lib/studyStats";
+import { dayBoundaries } from "@/lib/studyStats";
+import {
+  didCompleteDailyPlanWithSession,
+  getDailyPlanTotalTargetMinutes,
+  loadDailyPlan,
+} from "@/lib/dailyStudyPlan";
 import type {
   AppState,
   Action,
@@ -185,16 +193,11 @@ export default function Home() {
   // "내 공부 친구" 화면에서 여는 캐릭터 변경 화면. idle 에서만(세션 중 변경 방지).
   const [showCharacterSelect, setShowCharacterSelect] = useState(false);
 
-  // 친구 공간 / 내 공간 전체 화면. 새 ViewState 없이 순수 UI state 로 홈을 대체한다
+  // 친구 공간 전체 화면. 새 ViewState 없이 순수 UI state 로 홈을 대체한다
   // (CharacterCustomization 와 같은 early-return). idle 에서만 진입 가능.
   const [selectedFriendId, setSelectedFriendId] = useState<string | null>(null);
-  const [showMyRoomScreen, setShowMyRoomScreen] = useState(false);
-  // 내 "오늘 공부시간" — StudyRecord 에서 계산. 클릭 시점에만 채운다(SSR 안 탐).
-  const [myTodayStudyMinutes, setMyTodayStudyMinutes] = useState<number | null>(
-    null,
-  );
-  // 내 "이번 주 누적 공부시간" — StudyRecord 에서 계산. 클릭 시점에만 채운다.
-  const [myWeekStudyMinutes, setMyWeekStudyMinutes] = useState<number>(0);
+  // "오늘 계획" CRUD 전체 화면. 위와 같은 패턴 — idle 에서만 진입.
+  const [showDailyPlanScreen, setShowDailyPlanScreen] = useState(false);
 
   // 한 세션당 StudyRecord는 정확히 1개만 저장한다. 감상 선택은 이벤트 핸들러라
   // Strict Mode에서도 중복 실행되지 않지만, 연타/재진입 방어로 ref를 둔다.
@@ -213,6 +216,25 @@ export default function Home() {
     let rewardResult: StudyRewardResult | undefined;
     if (session && !recordSavedRef.current) {
       recordSavedRef.current = true;
+      const now = Date.now();
+      const elapsedSeconds = session.elapsedSeconds ?? 0;
+
+      // 저장 전 스냅샷 — 오늘 누적 공부 초 / 오늘 계획 진척은 이번 세션의
+      // StudyRecord가 아직 저장되지 않은 시점 기준으로 계산해야 이중 반영을
+      // 피할 수 있다(components/reaction/CharacterReaction.tsx의 buildDailyPlanContext와
+      // 동일한 안전장치).
+      const recordsBeforeThisSession = loadStudyRecords();
+      const todaySecondsBefore = getTodayStudySeconds(recordsBeforeThisSession, now);
+      const dailyPlan = loadDailyPlan(now);
+      const didCompleteDailyPlanWithThisSession = didCompleteDailyPlanWithSession(
+        dailyPlan,
+        recordsBeforeThisSession,
+        session.subject,
+        elapsedSeconds,
+        now,
+      );
+      const alreadyClaimedDailyPlanBonus = hasClaimedDailyPlanBonus(now);
+
       // done 화면에서 실제로 보여줄 최종 문장. Claude 성공/실패 모두 이 값을 저장한다.
       const finalReaction =
         aiReaction ??
@@ -220,8 +242,10 @@ export default function Home() {
           .responseLines[normalizeFeelingId(feelingId)];
       const record = createStudyRecord({
         subject: session.subject,
-        targetMinutes: session.targetMinutes,
-        elapsedSeconds: session.elapsedSeconds ?? 0,
+        // legacy 필드 — 더 이상 의미 없음(lib/types.ts StudyRecord.targetMinutes 주석
+        // 참고). 세션 단위 목표시간은 없앴고, 스키마만 유지하기 위해 0으로 저장한다.
+        targetMinutes: 0,
+        elapsedSeconds,
         feelingId,
         characterReaction: finalReaction,
         characterId: selectedCharacterId ?? DEFAULT_CHARACTER_ID,
@@ -243,9 +267,20 @@ export default function Home() {
       // StudyRecord / CharacterGrowth 와 같은 1회 가드 안에서 보상도 1회만
       // 증가시킨다(별도 rewardSavedRef 없음). evidence 와 무관하게 계산된다.
       const previousReward = loadStudyRewardState();
-      const rewardCalc = calculateStudyReward(session);
-      const nextReward = updateStudyRewardAfterStudy(previousReward, session);
+      const rewardCalc = calculateStudyReward({
+        elapsedSeconds,
+        todaySecondsBeforeThisSession: todaySecondsBefore,
+        didCompleteDailyPlanWithThisSession,
+        dailyPlanBonusAlreadyClaimedToday: alreadyClaimedDailyPlanBonus,
+        dailyPlanTotalTargetMinutes: getDailyPlanTotalTargetMinutes(dailyPlan),
+      });
+      const nextReward = updateStudyRewardAfterStudy(previousReward, rewardCalc);
       saveStudyRewardState(nextReward);
+      // 오늘 계획 완료 보너스를 실제로 지급했을 때만 claim을 기록한다 — 이후 같은
+      // 날 계획을 편집/재완료해도 재지급되지 않는다(lib/studyRewards.ts).
+      if (rewardCalc.dailyPlanCompletedNow) {
+        saveDailyPlanBonusClaimDayStart(dayBoundaries(now)[0]);
+      }
       // page.tsx 가 rewardState 의 source — 저장과 함께 메모리 상태도 갱신해
       // RESET 후 idle 상단 Hero 의 roomStage 가 최신이 되게 한다.
       setRewardState(nextReward);
@@ -298,17 +333,6 @@ export default function Home() {
     const next = unequipAccessory(customization);
     saveCharacterCustomizationState(next);
     setCustomization(next);
-  };
-
-  // 내 공간을 열 때 최신 상태를 다시 읽는다 — 그 사이 공부 완료로 roomStage/누적/
-  // 오늘 공부시간이 바뀌었을 수 있다(handleSelectFeeling 은 localStorage 에만 저장).
-  const openMyRoomScreen = () => {
-    const records = loadStudyRecords();
-    const nowMs = Date.now();
-    setRewardState(loadStudyRewardState());
-    setMyTodayStudyMinutes(getTodayStudyMinutes(records, nowMs));
-    setMyWeekStudyMinutes(getWeekTotalStudyMinutes(records, nowMs));
-    setShowMyRoomScreen(true);
   };
 
   // SSR/최초 렌더는 항상 여기 — 캐릭터 해석이 끝나기 전. 빈 cream 화면(한 프레임).
@@ -379,17 +403,9 @@ export default function Home() {
     }
   }
 
-  if (showMyRoomScreen) {
-    return (
-      <MyRoomScreen
-        characterId={selectedCharacterId}
-        rewardState={rewardState}
-        equippedAccessoryId={customization.equippedAccessoryId}
-        todayStudyMinutes={myTodayStudyMinutes}
-        weekStudyMinutes={myWeekStudyMinutes}
-        onBack={() => setShowMyRoomScreen(false)}
-      />
-    );
+  // 계획 편집은 idle 에서만 — studying/reaction/done 중에는 진입점 자체가 없다.
+  if (showDailyPlanScreen && state.phase === "idle") {
+    return <DailyStudyPlanScreen onBack={() => setShowDailyPlanScreen(false)} />;
   }
 
   return (
@@ -444,15 +460,15 @@ export default function Home() {
             />
           )}
 
-          {/* 내 공간 요약(누적시간·코인) + 방/꾸미기 진입 버튼 — Hero 장면과
+          {/* 내 공간 요약(누적시간·코인) + 꾸미기 진입 버튼 — Hero 장면과
               공부 입력 사이. 홈의 가장 큰 CTA 가 되면 안 된다. */}
           {state.phase === "idle" && (
-            <MyRoom
-              onOpenRoom={openMyRoomScreen}
-              onOpenCustomization={openCustomization}
-            />
+            <MyRoom onOpenCustomization={openCustomization} />
           )}
 
+          {/* 공부 시작 — 캐릭터가 이미 상단에서 오늘 계획을 알려주므로, 계획
+              리스트를 다시 읽기보다 바로 공부 행동으로 이어지는 편이 자연스럽다.
+              홈의 가장 중요한 행동이라 오늘 계획 목록보다 위에 둔다. */}
           {state.phase === "idle" && (
             <StudyCard
               phase="idle"
@@ -465,6 +481,13 @@ export default function Home() {
               onDebugSetElapsed={(elapsedSeconds) =>
                 dispatch({ type: "DEBUG_SET_ELAPSED", elapsedSeconds })
               }
+            />
+          )}
+
+          {/* 오늘 계획 진척 — StudyCard(공부 시작) 다음. 계획이 없으면 한 줄 CTA만. */}
+          {state.phase === "idle" && (
+            <DailyPlanHomeSection
+              onOpenPlanScreen={() => setShowDailyPlanScreen(true)}
             />
           )}
 

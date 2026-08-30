@@ -80,15 +80,6 @@ export function formatMinutesAndSeconds(totalSeconds: number): string {
   return `${minutes}분 ${seconds}초`;
 }
 
-// 목표 미달이어도 절대 부정적 표현을 쓰지 않는다 — "실패/미달성" 대신
-// 중립적인 "오늘은 N분 공부했어요"만 사용.
-export function buildGoalMessage(targetMinutes: number, elapsedSeconds: number): string {
-  const actualMinutes = toMinutes(elapsedSeconds);
-  return actualMinutes >= targetMinutes
-    ? "오늘 목표를 달성했어요"
-    : `오늘은 ${actualMinutes}분 공부했어요`;
-}
-
 // 60초 미만은 "0분"으로 보이지 않도록 "잠깐"으로 자연스럽게 표현한다.
 export function formatTogetherMinutes(elapsedSeconds: number): string {
   return elapsedSeconds < 60 ? "잠깐" : `${toMinutes(elapsedSeconds)}분`;

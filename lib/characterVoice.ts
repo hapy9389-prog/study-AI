@@ -31,6 +31,23 @@ interface CharacterVoice {
    *   수용 문구 — 항상 이 고정 문구를 쓴다(LLM 안 탐). 조언·계획 변경 없이 종료.
    */
   moodCheck: { ask: string; acceptOk: string; acceptHard: string };
+  /** Home 상단 캐릭터 말풍선 — 오늘 계획(Daily Study Plan) 진척 상태별 대사(lib/dailyPlanBubble.ts). */
+  dailyPlan: DailyPlanVoice;
+}
+
+// Home 캐릭터 말풍선의 오늘 계획 상태별 대사. 문장 "구조"(어떤 정보를 담을지)는
+// lib/dailyPlanBubble.ts 하나가 결정하고, 여기서는 캐릭터별 어미/말투만 채운다.
+export interface DailyPlanVoice {
+  /** 오늘 계획이 없을 때 고정 문구. */
+  noPlan: string;
+  /** 계획은 있지만 아직 시작 전. subjects는 describeSubjects()로 이미 조립된 나열. */
+  notStarted: (subjects: string) => string;
+  /** 일부 진행 중(완료 항목 없음). remaining은 formatTotalStudyTime()로 이미 포맷됨. */
+  inProgress: (subject: string, remaining: string) => string;
+  /** 하나 이상 완료 + 남은 항목 있음. rest는 과목명 1개 또는 "N 과목". */
+  partiallyCompleted: (doneSubject: string, rest: string) => string;
+  /** 오늘 계획 전체 완료 고정 문구. */
+  allCompleted: string;
 }
 
 // clarity 별 fallback 마무리. clear/미지정은 base 를 그대로 쓴다.
@@ -43,6 +60,26 @@ function buildClosingLine(
     if (clarity === "partial") return partial(subject);
     if (clarity === "unclear") return unclear(subject);
     return base(subject);
+  };
+}
+
+// 캐릭터별 어미만 다르게 넣고 문장 구조는 공유하는 factory — buildClosingLine과 같은 패턴.
+function buildDailyPlanVoice(words: {
+  noPlan: string;
+  notStartedEnding: string; // "오늘은 {subjects}를 " 뒤에 붙는 마무리. 예: "하기로 했구나."
+  remainingEnding: string; // "{subject}는 이제 {remaining} " 뒤에 붙는 마무리. 예: "정도 남았어."
+  doneEnding: string; // "{doneSubject}는 " 뒤에 붙는 마무리. 예: "다 했네."
+  restRemainingEnding: string; // "이제 {rest} " 뒤에 붙는 마무리. 예: "남았어."
+  allCompleted: string;
+}): DailyPlanVoice {
+  return {
+    noPlan: words.noPlan,
+    notStarted: (subjects) => `오늘은 ${subjects}를 ${words.notStartedEnding}`,
+    inProgress: (subject, remaining) =>
+      `${subject}는 이제 ${remaining} ${words.remainingEnding}`,
+    partiallyCompleted: (doneSubject, rest) =>
+      `${doneSubject}는 ${words.doneEnding} 이제 ${rest} ${words.restRemainingEnding}`,
+    allCompleted: words.allCompleted,
   };
 }
 
@@ -67,6 +104,14 @@ const VOICES: Record<CharacterId, CharacterVoice> = {
       acceptOk: "알겠어. 그럼 오늘도 여기까지 같이 기억해둘게.",
       acceptHard: "그랬구나. 요즘은 조금 힘 빼고 가도 괜찮아.",
     },
+    dailyPlan: buildDailyPlanVoice({
+      noPlan: "오늘은 어떤 공부를 해볼까?",
+      notStartedEnding: "하기로 했구나.",
+      remainingEnding: "정도 남았어.",
+      doneEnding: "다 했네.",
+      restRemainingEnding: "남았어.",
+      allCompleted: "오늘 하기로 한 공부는 다 끝냈네.",
+    }),
   },
   character_b: {
     reactionLine: (subject, together) =>
@@ -88,6 +133,14 @@ const VOICES: Record<CharacterId, CharacterVoice> = {
       acceptOk: "알겠어. 오늘은 여기까지 기억해둘게.",
       acceptHard: "그랬구나. 요즘은 좀 덜어내고 가도 돼.",
     },
+    dailyPlan: buildDailyPlanVoice({
+      noPlan: "오늘은 뭘 공부해볼래?",
+      notStartedEnding: "하기로 했네.",
+      remainingEnding: "남았네.",
+      doneEnding: "다 했어.",
+      restRemainingEnding: "남았네.",
+      allCompleted: "오늘 하기로 한 공부, 다 끝냈네.",
+    }),
   },
   character_c: {
     reactionLine: (subject, together) =>
@@ -109,6 +162,14 @@ const VOICES: Record<CharacterId, CharacterVoice> = {
       acceptOk: "응, 알겠어. 오늘 시간도 여기 잘 넣어둘게.",
       acceptHard: "그랬구나. 요즘은 천천히, 가볍게 가도 괜찮아.",
     },
+    dailyPlan: buildDailyPlanVoice({
+      noPlan: "오늘은 어떤 공부를 해볼까?",
+      notStartedEnding: "하기로 했구나.",
+      remainingEnding: "정도만 더 하면 돼.",
+      doneEnding: "다 했네.",
+      restRemainingEnding: "남았어.",
+      allCompleted: "오늘 하기로 한 공부는 다 끝냈네.",
+    }),
   },
 };
 

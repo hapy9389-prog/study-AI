@@ -13,8 +13,6 @@ interface StudyCardProps {
   onDebugSetElapsed: (elapsedSeconds: number) => void;
 }
 
-const QUICK_MINUTES = [30, 45, 60];
-
 // 개발 테스트용 경과 시간 프리셋 — 실제로 기다리지 않고 흐름을 확인하기 위한 값.
 const DEBUG_ELAPSED_PRESETS = [
   { label: "20초", seconds: 20 },
@@ -33,8 +31,6 @@ export default function StudyCard({
   onDebugSetElapsed,
 }: StudyCardProps) {
   const [subject, setSubject] = useState("");
-  const [targetMinutes, setTargetMinutes] = useState<number | null>(null);
-  const [customMinutes, setCustomMinutes] = useState("");
   const [liveElapsedSeconds, setLiveElapsedSeconds] = useState(0);
 
   // 매초 Date.now() - startedAt을 다시 계산해서 state에 반영한다(단순 += 1이
@@ -52,65 +48,27 @@ export default function StudyCard({
   }, [phase, studySession?.startedAt]);
 
   const trimmedSubject = subject.trim();
-  const isSubjectValid = trimmedSubject.length > 0;
-
-  const effectiveMinutes = customMinutes.trim() !== "" ? Number(customMinutes) : targetMinutes;
-  const isMinutesValid =
-    effectiveMinutes !== null &&
-    Number.isFinite(effectiveMinutes) &&
-    Number.isInteger(effectiveMinutes) &&
-    effectiveMinutes >= 1;
-
-  const isFormValid = isSubjectValid && isMinutesValid;
+  const isFormValid = trimmedSubject.length > 0;
 
   const handleStart = () => {
     if (!isFormValid) return;
-    onStartStudy({ subject: trimmedSubject, targetMinutes: effectiveMinutes as number });
+    onStartStudy({ subject: trimmedSubject });
   };
 
+  // 세션마다 목표 시간을 따로 정하지 않는다 — 하루 전체 목표는 오늘 계획
+  // (DailyStudyPlan)이 담당하고, 여기서는 무엇을 공부할지만 정하고 바로 시작한다.
+  // 원하는 만큼 공부하고 자유롭게 끝내면 된다.
   if (phase === "idle") {
     return (
       <section className="mx-6 rounded-2xl bg-white p-5">
+        <p className="text-xs font-medium text-warm-gray">무엇을 공부할까?</p>
         <input
           type="text"
           value={subject}
           onChange={(e) => setSubject(e.target.value)}
           placeholder="예: 영어 회화, 미분, SQLD"
-          className="field"
+          className="field mt-2"
         />
-
-        <p className="mt-4 text-xs font-medium text-warm-gray">목표 시간</p>
-        <div className="mt-2 flex flex-wrap items-center gap-2">
-          {QUICK_MINUTES.map((minutes) => {
-            const selected =
-              targetMinutes === minutes && customMinutes.trim() === "";
-            return (
-              <button
-                key={minutes}
-                type="button"
-                onClick={() => {
-                  setTargetMinutes(minutes);
-                  setCustomMinutes("");
-                }}
-                className={selected ? "chip-active" : "chip"}
-              >
-                {minutes}분
-              </button>
-            );
-          })}
-          <input
-            type="number"
-            inputMode="numeric"
-            min={1}
-            value={customMinutes}
-            onChange={(e) => {
-              setCustomMinutes(e.target.value);
-              setTargetMinutes(null);
-            }}
-            placeholder="직접 입력"
-            className="w-24 rounded-2xl border border-peach/60 bg-cream px-3 py-2 text-sm text-cocoa outline-none transition-colors focus:border-peach-deep"
-          />
-        </div>
 
         <button
           type="button"
@@ -134,9 +92,6 @@ export default function StudyCard({
         </p>
         <p className="text-6xl font-light tabular-nums tracking-tight text-cocoa">
           {formatClock(liveElapsedSeconds)}
-        </p>
-        <p className="text-xs text-warm-gray">
-          목표 {studySession.targetMinutes}분
         </p>
         <button
           type="button"
